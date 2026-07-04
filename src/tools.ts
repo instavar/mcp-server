@@ -119,7 +119,7 @@ export function registerTools(server: McpServer): void {
 
   server.tool(
     "edit_video_brief",
-    "Edit an existing job's brief (only provided fields change) and trigger a re-render. Returns the new run ID.",
+    "Edit an existing job's brief (only provided fields change). Changing the script, caption, title, lessonTitle, objective, steps, scenes or aspectRatio triggers a re-render and returns the new run ID; objective also re-routes the composition. Changing only publishTarget updates the job's target platform without re-rendering.",
     editBriefShape,
     async (input) => {
       const { jobId, ...patch } = input;

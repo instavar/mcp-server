@@ -1,9 +1,13 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { registerTools } from "./tools";
+import pkg from "../package.json";
 
-// Keep in sync with package.json "version".
-const VERSION = "0.1.1";
+// Single source of truth: derived from package.json at build time (tsup inlines
+// the JSON import), so the runtime --version can never drift from the published
+// package version the way the old hardcoded constant did (0.1.2 and 0.1.3 both
+// shipped reporting a stale 0.1.1).
+const VERSION = pkg.version;
 
 const HELP = [
   "instavar-mcp — Instavar Studio MCP server",

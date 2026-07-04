@@ -188,4 +188,16 @@ export const editBriefShape = {
     .optional()
     .describe("Updated scenes (replaces the array)"),
   aspectRatio: z.enum(ASPECT_RATIOS).optional().describe("Updated aspect ratio"),
+  objective: z
+    .enum(BRIEF_OBJECTIVES)
+    .optional()
+    .describe(
+      "Updated content objective. Re-routes the composition and triggers a re-render."
+    ),
+  publishTarget: z
+    .enum(PUBLISH_TARGETS)
+    .optional()
+    .describe(
+      "Updated target social platform. Distribution metadata only - does not trigger a re-render."
+    ),
 };

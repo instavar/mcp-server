@@ -37,19 +37,19 @@ no data of its own.
 
 ## Tools
 
-| Tool                     | What it does                                                    |
-| ------------------------ | --------------------------------------------------------------- |
-| `list_jobs`              | List recent jobs (newest first).                                |
-| `get_job_status`         | Runs, artifacts, verifications, current video + thumbnail URLs. |
-| `get_video_state`        | Materialized composition state for a job.                       |
-| `get_job_metrics`        | Platform engagement snapshots for a published job.              |
-| `get_cost_summary`       | Infra cost summary (Lambda / RunPod / R2 / WaveSpeed / PoYo).   |
-| `create_video_brief`     | Create a job from a structured brief and start rendering.       |
-| `edit_video_brief`       | Patch a brief and re-render.                                    |
-| `approve_job`            | Approve a rendered job so it can be published.                  |
-| `publish_job`            | Publish an approved job to its connected social destination.    |
-| `connect_account`        | Start connecting a social account (headless OAuth pairing).     |
-| `connect_account_status` | Poll a pending account connection until it is connected.        |
+| Tool                     | What it does                                                                                   |
+| ------------------------ | ---------------------------------------------------------------------------------------------- |
+| `list_jobs`              | List recent jobs (newest first).                                                               |
+| `get_job_status`         | Runs, artifacts, verifications, current video + thumbnail URLs.                                |
+| `get_video_state`        | Materialized composition state for a job.                                                      |
+| `get_job_metrics`        | Platform engagement snapshots for a published job.                                             |
+| `get_cost_summary`       | Infra cost summary (Lambda / RunPod / R2 / WaveSpeed / PoYo).                                  |
+| `create_video_brief`     | Create a job from a structured brief and start rendering.                                      |
+| `edit_video_brief`       | Patch a brief (incl. objective / publishTarget); re-renders unless only publishTarget changed. |
+| `approve_job`            | Approve a rendered job so it can be published.                                                 |
+| `publish_job`            | Publish an approved job to its connected social destination.                                   |
+| `connect_account`        | Start connecting a social account (headless OAuth pairing).                                    |
+| `connect_account_status` | Poll a pending account connection until it is connected.                                       |
 
 Writes require a key with the `write` scope; `publish_job` requires `publish`.
 
