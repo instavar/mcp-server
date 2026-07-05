@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/instavar/mcp-server/actions/workflows/ci.yml/badge.svg)](https://github.com/instavar/mcp-server/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/%40instavar%2Fmcp-server)](https://www.npmjs.com/package/@instavar/mcp-server)
-[![MCP server on Glama](https://glama.ai/mcp/servers/instavar/mcp-server/badge)](https://glama.ai/mcp/servers/instavar/mcp-server)
+[![Glama score](https://glama.ai/mcp/servers/instavar/mcp-server/badges/score.svg)](https://glama.ai/mcp/servers/instavar/mcp-server)
 
 Drive the full [Instavar Studio](https://instavar.com) video workflow —
 **create → render → approve → publish → metrics** — from Claude Code or Codex,

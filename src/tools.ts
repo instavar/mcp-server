@@ -25,7 +25,7 @@ export function registerTools(server: McpServer): void {
     {
       title: "List jobs",
       description:
-        "List recent video jobs for the current organization (newest first).",
+        "List recent video jobs for the current organization (newest first). Start here to discover job IDs; for one job's full detail use get_job_status.",
       inputSchema: {
         limit: z
           .number()
@@ -62,7 +62,7 @@ export function registerTools(server: McpServer): void {
     {
       title: "Get job status",
       description:
-        "Get detailed status for a job: runs, artifacts, verifications, plus the current video and thumbnail URLs.",
+        "Get detailed status for a job: runs, artifacts, verifications, plus the current video and thumbnail URLs. The main polling target after create_video_brief or edit_video_brief; for post-publish engagement numbers use get_job_metrics instead.",
       inputSchema: { jobId: uuid("The job ID to check") },
       annotations: READ_ONLY,
     },
@@ -75,7 +75,7 @@ export function registerTools(server: McpServer): void {
     {
       title: "Get video state",
       description:
-        "Get the materialized video state for a job (composition decisions: scenes, duration, aspect ratio, etc.).",
+        "Get the materialized video state for a job (composition decisions: scenes, duration, aspect ratio, etc.). Use it to inspect what the video contains; for pipeline progress and video URLs use get_job_status.",
       inputSchema: { jobId: uuid("The job ID") },
       annotations: READ_ONLY,
     },
@@ -90,7 +90,7 @@ export function registerTools(server: McpServer): void {
     {
       title: "Get job metrics",
       description:
-        "Get the latest platform engagement metric snapshots for a published job (newest first). Read-only.",
+        "Get the latest platform engagement metric snapshots for a published job (newest first). Read-only. Only meaningful after publish_job; for render progress use get_job_status.",
       inputSchema: {
         jobId: uuid("The job ID"),
         limit: z
@@ -116,7 +116,7 @@ export function registerTools(server: McpServer): void {
     {
       title: "Get cost summary",
       description:
-        "Query production infrastructure costs (Lambda, RunPod, R2, WaveSpeed, PoYo), optionally with reconciliation drift.",
+        "Query production infrastructure costs (Lambda, RunPod, R2, WaveSpeed, PoYo), optionally with reconciliation drift. This is spend data, not engagement — for a published job's audience numbers use get_job_metrics.",
       inputSchema: {
         since: z
           .string()
@@ -152,7 +152,7 @@ export function registerTools(server: McpServer): void {
     {
       title: "Create video brief",
       description:
-        "Create a new video job from a structured brief and trigger the render pipeline. Returns the job and run IDs.",
+        "Create a new video job from a structured brief and trigger the render pipeline. Returns the job and run IDs immediately; rendering continues asynchronously (typically a few minutes) — poll get_job_status until draft_ready. Requires a key with write scope. To change an existing job, use edit_video_brief instead of creating a duplicate.",
       inputSchema: createBriefShape,
       annotations: SAFE_WRITE,
     },
@@ -164,7 +164,7 @@ export function registerTools(server: McpServer): void {
     {
       title: "Edit video brief",
       description:
-        "Edit an existing job's brief (only provided fields change). Changing the script, caption, title, lessonTitle, objective, steps, scenes or aspectRatio triggers a re-render and returns the new run ID; objective also re-routes the composition. Changing only publishTarget updates the job's target platform without re-rendering.",
+        "Edit an existing job's brief (only provided fields change). Changing the script, caption, title, lessonTitle, objective, steps, scenes or aspectRatio triggers a re-render and returns the new run ID; objective also re-routes the composition. Changing only publishTarget updates the job's target platform without re-rendering. For a brand-new video use create_video_brief.",
       inputSchema: editBriefShape,
       annotations: SAFE_WRITE,
     },
@@ -181,7 +181,7 @@ export function registerTools(server: McpServer): void {
     {
       title: "Approve job",
       description:
-        "Approve a rendered job so it becomes publishable (draft_ready/awaiting_review/needs_changes -> approved) and revoke active review links.",
+        "Approve a rendered job so it becomes publishable (draft_ready/awaiting_review/needs_changes -> approved) and revoke active review links. Required before publish_job will accept the job.",
       inputSchema: { jobId: uuid("The job ID to approve") },
       annotations: {
         readOnlyHint: false,
@@ -202,7 +202,7 @@ export function registerTools(server: McpServer): void {
     {
       title: "Publish job",
       description:
-        "Publish an APPROVED job to its connected social destination via the gated publish API. All production gates run (paid plan, ownership, abuse, QA, disclosure, destination, rights, moderation). For YouTube pass youtubePrivacyStatus:'private' for safe runs.",
+        "Publish an APPROVED job to its connected social destination via the gated publish API. All production gates run (paid plan, ownership, abuse, QA, disclosure, destination, rights, moderation). Requires a key with publish scope; the post goes live on the external platform and cannot be recalled by the API. For YouTube pass youtubePrivacyStatus:'private' for safe runs.",
       inputSchema: {
         jobId: uuid("The approved job to publish"),
         youtubePrivacyStatus: z

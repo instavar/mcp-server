@@ -1,6 +1,6 @@
 {
   "name": "@instavar/mcp-server",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "mcpName": "com.instavar/mcp-server",
   "description": "Instavar Studio MCP server — drive the full video create→render→approve→publish→metrics workflow from Claude Code or Codex with an API key.",
   "type": "module",
