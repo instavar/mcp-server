@@ -6,10 +6,19 @@ type Handler = (args: Record<string, unknown>) => Promise<{
   content: Array<{ text: string }>;
 }>;
 
+type ToolConfig = {
+  title?: string;
+  description?: string;
+  inputSchema?: unknown;
+  annotations?: Record<string, boolean>;
+};
+
 const handlers = new Map<string, Handler>();
+const configs = new Map<string, ToolConfig>();
 const fakeServer = {
-  tool: (_n: string, _d: string, _shape: unknown, handler: Handler) => {
-    handlers.set(_n, handler);
+  registerTool: (name: string, config: ToolConfig, handler: Handler) => {
+    handlers.set(name, handler);
+    configs.set(name, config);
   },
 } as unknown as Parameters<typeof registerTools>[0];
 
@@ -60,6 +69,41 @@ describe("registration", () => {
         "publish_job",
       ].sort()
     );
+  });
+
+  it("every tool declares a title and annotations", () => {
+    for (const [name, config] of configs) {
+      expect(config.title, name).toBeTruthy();
+      expect(config.annotations, name).toBeDefined();
+      expect(config.annotations?.openWorldHint, name).toBeDefined();
+    }
+  });
+
+  it("read tools are readOnlyHint, writes are not", () => {
+    const readTools = [
+      "list_jobs",
+      "get_job_status",
+      "get_video_state",
+      "get_job_metrics",
+      "get_cost_summary",
+      "connect_account_status",
+    ];
+    for (const [name, config] of configs) {
+      expect(config.annotations?.readOnlyHint, name).toBe(
+        readTools.includes(name)
+      );
+    }
+  });
+
+  it("only publish_job is destructive; it and connect_account are open-world", () => {
+    for (const [name, config] of configs) {
+      const a = config.annotations!;
+      if (a.readOnlyHint) continue;
+      expect(a.destructiveHint, name).toBe(name === "publish_job");
+      expect(a.openWorldHint, name).toBe(
+        name === "publish_job" || name === "connect_account"
+      );
+    }
   });
 });
 
