@@ -1,0 +1,28 @@
+# CI for the public mirror (github.com/instavar/mcp-server).
+# This file lives at packages/mcp-server/.github/workflows/ci.yml in the
+# monorepo so the mirror sync (which wipes and re-copies the whole tree each
+# release) carries it to the mirror root. It is inert in the monorepo itself —
+# GitHub only reads workflows from the repository root .github/.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # npm install, not npm ci: package-lock.json is deliberately gitignored
+      # in this package (packages/mcp-server/.gitignore), so the mirror never
+      # has a lockfile. Same reason the Glama build spec uses npm install.
+      - run: npm install
+      - run: npm run build
+      - run: npm run typecheck
+      - run: npm test
