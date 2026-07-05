@@ -1,0 +1,30 @@
+# Smithery configuration for @instavar/mcp-server
+# https://smithery.ai/docs/build/project-config
+# Ships to the public mirror (github.com/instavar/mcp-server) via
+# mirror-mcp-server.yml on each release tag; not part of the npm tarball
+# (package.json "files" whitelists only dist + README.md).
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    required:
+      - instavarApiKey
+    properties:
+      instavarApiKey:
+        type: string
+        description: >-
+          Instavar Studio API key (ik_live_...). Create one at
+          https://instavar.com/studio/settings — shown once, scoped to your
+          workspace, revocable.
+      instavarBaseUrl:
+        type: string
+        description: Override the API host. Defaults to https://instavar.com.
+  commandFunction: |-
+    (config) => ({
+      command: "npx",
+      args: ["-y", "@instavar/mcp-server"],
+      env: {
+        INSTAVAR_API_KEY: config.instavarApiKey,
+        ...(config.instavarBaseUrl ? { INSTAVAR_BASE_URL: config.instavarBaseUrl } : {})
+      }
+    })
