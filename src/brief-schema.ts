@@ -58,6 +58,7 @@ export const briefSceneSchema = z.object({
     "custom",
   ]),
   durationInFrames: z.number().optional(),
+  narrationText: z.string().optional(),
   title: z.string().optional(),
   subtitle: z.string().optional(),
   text: z.string().optional(),
@@ -78,6 +79,12 @@ export const briefSceneSchema = z.object({
   items: z.array(z.object({ label: z.string(), value: z.number() })).optional(),
   src: z.string().optional(),
   caption: z.string().optional(),
+  // A-roll generation (video-window scenes): source "generate" triggers
+  // flag-gated WaveSpeed image/video gen server-side from generatePrompt;
+  // "url" (default) uses src as-is. Kept in sync with the app's
+  // briefSceneSchema - see the parity test in the app suite.
+  source: z.enum(["url", "generate"]).optional(),
+  generatePrompt: z.string().optional(),
 });
 
 /**
@@ -157,14 +164,24 @@ export const createBriefShape = {
     .array(briefSceneSchema)
     .optional()
     .describe("Scene graph for the UniversalVideo composition"),
+  // No zod .default() here: a default would materialize into the parsed tool
+  // arguments and relay to /api/v1/jobs as if the caller stated it, corrupting
+  // the resolution provenance the API echoes back. Unset must stay absent;
+  // the API re-applies 9:16 server-side.
   aspectRatio: z
     .enum(ASPECT_RATIOS)
-    .default("9:16")
-    .describe("Aspect ratio (default 9:16)"),
+    .optional()
+    .describe("Aspect ratio (defaults to 9:16 when omitted)"),
   compositionId: z
     .string()
     .optional()
     .describe("Remotion composition ID override (advanced)"),
+  voiceId: z
+    .string()
+    .optional()
+    .describe(
+      "TTS narrator voice ID. Unknown IDs are rejected before rendering; when omitted, the org's saved voice preference or the system default is used and reported in the response's resolution block."
+    ),
   directions: directionsBriefSchema
     .optional()
     .describe(
@@ -199,5 +216,11 @@ export const editBriefShape = {
     .optional()
     .describe(
       "Updated target social platform. Distribution metadata only - does not trigger a re-render."
+    ),
+  voiceId: z
+    .string()
+    .optional()
+    .describe(
+      "Updated TTS narrator voice ID. Triggers a re-render with the new voice."
     ),
 };

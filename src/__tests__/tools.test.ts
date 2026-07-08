@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { registerTools } from "../tools";
+import { z } from "zod";
 
 type Handler = (args: Record<string, unknown>) => Promise<{
   isError?: boolean;
@@ -295,5 +296,46 @@ describe("auth + error surfacing", () => {
     process.env.INSTAVAR_BASE_URL = "https://staging.instavar.com/";
     await call("list_jobs", { limit: 1 });
     expect(lastFetch().url).toMatch(/^https:\/\/staging\.instavar\.com\/api\/v1\/jobs/);
+  });
+});
+
+describe("brief tool schemas preserve caller presence", () => {
+  const MINIMAL_BRIEF = {
+    title: "Launch",
+    script: "Hello world script",
+    caption: "A caption #launch",
+    publishTarget: "youtube",
+    objective: "launch_update",
+  };
+  const shapeOf = (tool: string) =>
+    configs.get(tool)!.inputSchema as Record<string, z.ZodTypeAny>;
+
+  it("create_video_brief does NOT materialize an aspectRatio default", () => {
+    // A zod .default() would inject aspectRatio into the parsed args and the
+    // relay would POST it, making /api/v1/jobs report source:"stated" for a
+    // value the caller never supplied.
+    const parsed = z.object(shapeOf("create_video_brief")).parse(MINIMAL_BRIEF);
+    expect(
+      "aspectRatio" in parsed &&
+        (parsed as Record<string, unknown>).aspectRatio !== undefined
+    ).toBe(false);
+  });
+
+  it("create_video_brief accepts stated aspectRatio and voiceId", () => {
+    const parsed = z.object(shapeOf("create_video_brief")).parse({
+      ...MINIMAL_BRIEF,
+      aspectRatio: "16:9",
+      voiceId: "paul-cheerful",
+    }) as Record<string, unknown>;
+    expect(parsed.aspectRatio).toBe("16:9");
+    expect(parsed.voiceId).toBe("paul-cheerful");
+  });
+
+  it("edit_video_brief accepts a voiceId patch", () => {
+    const parsed = z.object(shapeOf("edit_video_brief")).parse({
+      jobId: "0b6ee81a-92c3-4a5c-8b2f-1e15aa1c2d3e",
+      voiceId: "jane-neutral",
+    }) as Record<string, unknown>;
+    expect(parsed.voiceId).toBe("jane-neutral");
   });
 });
