@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { registerTools } from "./tools";
+import { registerConfiguredTools } from "./configured-tools";
 import pkg from "../package.json";
 
 // Single source of truth: derived from package.json at build time (tsup inlines
@@ -12,8 +12,10 @@ const VERSION = pkg.version;
 const HELP = [
   "instavar-mcp — Instavar Studio MCP server",
   "",
-  "Runs over stdio (launched by Claude Code / Codex). Configure via env:",
-  "  INSTAVAR_API_KEY   (required) your key from https://instavar.com/studio/settings",
+  "Runs over stdio (launched by Claude Code / Codex).",
+  "Public template tools work without configuration.",
+  "Optional env:",
+  "  INSTAVAR_API_KEY   unlocks hosted Studio tools",
   "  INSTAVAR_BASE_URL  (optional) defaults to https://instavar.com",
   "",
   "Flags: --version, --help",
@@ -32,19 +34,8 @@ async function main(): Promise<void> {
     return;
   }
 
-  // Fail fast with a clear message before connecting — the server needs only an
-  // API key, never a database connection.
-  if (!process.env.INSTAVAR_API_KEY?.trim()) {
-    process.stderr.write(
-      "instavar-mcp: INSTAVAR_API_KEY is not set. Create a key at " +
-        "https://instavar.com/studio/settings and add it to the MCP server env " +
-        "block (env.INSTAVAR_API_KEY).\n"
-    );
-    process.exit(1);
-  }
-
   const server = new McpServer({ name: "instavar", version: VERSION });
-  registerTools(server);
+  registerConfiguredTools(server);
   await server.connect(new StdioServerTransport());
 }
 

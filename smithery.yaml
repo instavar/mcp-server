@@ -7,15 +7,14 @@ startCommand:
   type: stdio
   configSchema:
     type: object
-    required:
-      - instavarApiKey
     properties:
       instavarApiKey:
         type: string
         description: >-
-          Instavar Studio API key (ik_live_...). Create one at
+          Optional Instavar Studio API key (ik_live_...). Create one at
           https://instavar.com/studio/settings — shown once, scoped to your
-          workspace, revocable.
+          workspace, revocable. Without it, the free local template tools
+          remain available.
       instavarBaseUrl:
         type: string
         description: Override the API host. Defaults to https://instavar.com.
@@ -24,7 +23,7 @@ startCommand:
       command: "npx",
       args: ["-y", "@instavar/mcp-server"],
       env: {
-        INSTAVAR_API_KEY: config.instavarApiKey,
+        ...(config.instavarApiKey ? { INSTAVAR_API_KEY: config.instavarApiKey } : {}),
         ...(config.instavarBaseUrl ? { INSTAVAR_BASE_URL: config.instavarBaseUrl } : {})
       }
     })

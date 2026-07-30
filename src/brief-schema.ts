@@ -31,11 +31,140 @@ export const BRIEF_OBJECTIVES = [
 
 export const ASPECT_RATIOS = ["9:16", "4:5", "1:1", "16:9"] as const;
 
+export const REFERENCE_ROLES = [
+  "identity",
+  "appearance",
+  "motion",
+  "composition",
+  "camera",
+  "environment",
+  "style",
+] as const;
+
+const optionalDirectionText = z.string().trim().min(1).max(500).optional();
+
+export const visualDirectionSchema = z.object({
+  communicationJob: optionalDirectionText,
+  emotionalTarget: optionalDirectionText,
+  attentionPath: z
+    .object({
+      first: optionalDirectionText,
+      next: optionalDirectionText,
+      proof: optionalDirectionText,
+    })
+    .optional(),
+  visualLanguage: z
+    .object({
+      space: optionalDirectionText,
+      line: optionalDirectionText,
+      shape: optionalDirectionText,
+      tone: optionalDirectionText,
+      color: optionalDirectionText,
+      movement: optionalDirectionText,
+      rhythm: optionalDirectionText,
+    })
+    .optional(),
+  camera: z
+    .object({
+      shotSize: optionalDirectionText,
+      angle: optionalDirectionText,
+      movement: optionalDirectionText,
+      lens: optionalDirectionText,
+    })
+    .optional(),
+});
+
+export const generationContractSchema = z.object({
+  globalInvariants: z
+    .array(z.string().trim().min(1).max(300))
+    .max(20)
+    .optional(),
+  shotDelta: z.string().trim().min(1).max(500).optional(),
+  referenceBindings: z
+    .array(
+      z.object({
+        assetId: z.string().trim().min(1).max(200),
+        roles: z.array(z.enum(REFERENCE_ROLES)).min(1).max(7),
+      })
+    )
+    .max(20)
+    .optional(),
+  prohibitedChanges: z
+    .array(z.string().trim().min(1).max(300))
+    .max(20)
+    .optional(),
+  reviewCriteria: z.array(z.string().trim().min(1).max(300)).max(20).optional(),
+});
+
+export const REGION_NAMES = [
+  "background",
+  "left-half",
+  "right-half",
+  "figure-center",
+  "corner-inset",
+  "lower-third",
+] as const;
+
+export const ASSET_ROLES = [
+  "background",
+  "figure",
+  "inset",
+  "lower-third",
+  "diagram-node",
+] as const;
+
+export const assetSlotStyleSchema = z
+  .object({
+    opacity: z.number().min(0).max(1).optional(),
+    fit: z.enum(["cover", "contain"]).optional(),
+    z: z.number().optional(),
+  })
+  .strict();
+
+export const assetSlotSchema = z
+  .object({
+    id: z.string().min(1),
+    sceneId: z.string().min(1).optional(),
+    region: z.enum(REGION_NAMES),
+    role: z.enum(ASSET_ROLES),
+    kind: z.enum(["image", "video"]),
+    source: z.enum(["auto", "stock", "generate"]),
+    intent: z.string(),
+    style: assetSlotStyleSchema.optional(),
+    timing: z
+      .object({
+        fromPct: z.number().min(0).max(1).optional(),
+        toPct: z.number().min(0).max(1).optional(),
+      })
+      .strict()
+      .optional(),
+    url: z.string().url().optional(),
+  })
+  .strict();
+
 export const briefStepSchema = z.object({
   label: z.string(),
   latex: z.string().optional(),
   explanation: z.string().optional(),
 });
+
+export const briefAudioLayerSchema = z.object({
+  id: z.string().min(1),
+  src: z.string().url(),
+  startFrame: z.number().int().nonnegative().default(0),
+  durationInFrames: z.number().int().positive().optional(),
+  volume: z.number().min(0).max(1).default(1),
+  fadeFrames: z.number().int().nonnegative().default(0),
+  role: z.enum(["music", "foley", "transition", "effect"]),
+});
+
+export const beatVisualRequestSchema = z
+  .object({
+    intent: z.string().trim().min(1).optional(),
+    media: z.enum(["still", "motion"]).default("still"),
+    source: z.enum(["auto", "stock", "generate"]).default("auto"),
+  })
+  .strict();
 
 export const briefSceneSchema = z.object({
   type: z.enum([
@@ -54,11 +183,16 @@ export const briefSceneSchema = z.object({
     "callout",
     "step-pill",
     "cta-pulse",
+    "source-clip",
+    "source-image",
+    "route-card",
     "video-window",
+    "image-window",
     "custom",
   ]),
   durationInFrames: z.number().optional(),
   narrationText: z.string().optional(),
+  visualResolution: beatVisualRequestSchema.optional(),
   title: z.string().optional(),
   subtitle: z.string().optional(),
   text: z.string().optional(),
@@ -85,6 +219,27 @@ export const briefSceneSchema = z.object({
   // briefSceneSchema - see the parity test in the app suite.
   source: z.enum(["url", "generate"]).optional(),
   generatePrompt: z.string().optional(),
+  generationContract: generationContractSchema.optional(),
+  trimStartSeconds: z.number().nonnegative().optional(),
+  trimEndSeconds: z.number().positive().optional(),
+  playbackRate: z.number().min(0.25).max(8).optional(),
+  objectFit: z.enum(["cover", "contain"]).optional(),
+  objectPosition: z.string().optional(),
+  scaleFrom: z.number().min(0.5).max(2).optional(),
+  scaleTo: z.number().min(0.5).max(2).optional(),
+  panFromX: z.number().min(-50).max(50).optional(),
+  panToX: z.number().min(-50).max(50).optional(),
+  panFromY: z.number().min(-50).max(50).optional(),
+  panToY: z.number().min(-50).max(50).optional(),
+  routeFrom: z.string().optional(),
+  routeTo: z.string().optional(),
+  routeLabel: z.string().optional(),
+  overlayKind: z.enum(["none", "hook", "stage", "end-card"]).optional(),
+  overlayPosition: z.enum(["center", "top", "bottom"]).optional(),
+  accentColor: z.string().optional(),
+  overlayBackgroundColor: z.string().optional(),
+  cutFlash: z.boolean().optional(),
+  muted: z.boolean().optional(),
 });
 
 /**
@@ -156,6 +311,11 @@ export const createBriefShape = {
     .string()
     .optional()
     .describe("Display title rendered inside the video"),
+  visualDirection: visualDirectionSchema
+    .optional()
+    .describe(
+      "Whole-video communication, attention, visual-language, and camera direction."
+    ),
   steps: z
     .array(briefStepSchema)
     .optional()
@@ -187,6 +347,16 @@ export const createBriefShape = {
     .describe(
       "DirectionsWalkthrough 'find-us' payload: source clips (legs), decision-point cues on the realtime walk timeline, outro, and optional music. Set compositionId 'DirectionsWalkthrough' (or objective 'directions')."
     ),
+  assetSlots: z
+    .array(assetSlotSchema)
+    .optional()
+    .describe(
+      "Optional storyboard asset slots: region-placed image/video assets or placeholders attached to the whole video or a specific scene."
+    ),
+  audioLayers: z
+    .array(briefAudioLayerSchema)
+    .optional()
+    .describe("Optional typed music, Foley, transition, and effect layers."),
 };
 
 /** Raw shape for edit_video_brief (jobId + the patchable brief fields). */
@@ -196,6 +366,9 @@ export const editBriefShape = {
   script: z.string().optional().describe("Updated narration script"),
   caption: z.string().optional().describe("Updated social caption"),
   lessonTitle: z.string().optional().describe("Updated lesson title"),
+  visualDirection: visualDirectionSchema
+    .optional()
+    .describe("Updated whole-video visual direction"),
   steps: z
     .array(briefStepSchema)
     .optional()
@@ -204,7 +377,10 @@ export const editBriefShape = {
     .array(briefSceneSchema)
     .optional()
     .describe("Updated scenes (replaces the array)"),
-  aspectRatio: z.enum(ASPECT_RATIOS).optional().describe("Updated aspect ratio"),
+  aspectRatio: z
+    .enum(ASPECT_RATIOS)
+    .optional()
+    .describe("Updated aspect ratio"),
   objective: z
     .enum(BRIEF_OBJECTIVES)
     .optional()
@@ -222,5 +398,17 @@ export const editBriefShape = {
     .optional()
     .describe(
       "Updated TTS narrator voice ID. Triggers a re-render with the new voice."
+    ),
+  assetSlots: z
+    .array(assetSlotSchema)
+    .optional()
+    .describe(
+      "Replacement storyboard asset slots. Omit to preserve existing slots; pass [] to clear them."
+    ),
+  audioLayers: z
+    .array(briefAudioLayerSchema)
+    .optional()
+    .describe(
+      "Replacement typed audio layers. Omit to preserve existing layers; pass [] to clear them."
     ),
 };

@@ -1,8 +1,8 @@
 {
   "name": "@instavar/mcp-server",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "mcpName": "com.instavar/mcp-server",
-  "description": "Instavar Studio MCP server — drive the full video create→render→approve→publish→metrics workflow from Claude Code or Codex with an API key.",
+  "description": "Make local videos with Instavar Remotion templates for free, then add an API key for hosted Studio workflows.",
   "type": "module",
   "license": "MIT",
   "homepage": "https://instavar.com",
@@ -13,7 +13,14 @@
   "bugs": {
     "url": "https://github.com/instavar/mcp-server/issues"
   },
-  "keywords": ["mcp", "model-context-protocol", "instavar", "video", "claude", "codex"],
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "instavar",
+    "video",
+    "claude",
+    "codex"
+  ],
   "bin": {
     "instavar-mcp": "dist/index.js"
   },

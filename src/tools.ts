@@ -145,6 +145,21 @@ export function registerTools(server: McpServer): void {
     }
   );
 
+  server.registerTool(
+    "inspect_workflow",
+    {
+      title: "Inspect workflow",
+      description:
+        "Inspect the current Studio workflow and its version history for a job.",
+      inputSchema: z.object({ jobId: uuid("The job ID") }).strict(),
+      annotations: READ_ONLY,
+    },
+    async ({ jobId }) =>
+      runTool(() =>
+        apiGet(`/api/v1/jobs/${encodeURIComponent(jobId)}/workflow`)
+      )
+  );
+
   // ── Writes ─────────────────────────────────────────────────────────────
 
   server.registerTool(
@@ -174,6 +189,216 @@ export function registerTools(server: McpServer): void {
         apiPost(`/api/v1/jobs/${encodeURIComponent(jobId)}/brief`, patch)
       );
     }
+  );
+
+  const workflowWrite = (
+    operation: string,
+    jobId: string,
+    payload: Record<string, unknown> = {}
+  ) =>
+    runTool(() =>
+      apiPost(`/api/v1/jobs/${encodeURIComponent(jobId)}/workflow`, {
+        operation,
+        ...payload,
+      })
+    );
+
+  server.registerTool(
+    "draft_workflow",
+    {
+      title: "Draft workflow",
+      description:
+        "Create a durable Documentary Journey or Transformation Montage workflow version. Inspect first and pass its current version, or 0 only when no workflow exists.",
+      inputSchema: z
+        .object({
+          jobId: uuid("The job ID"),
+          expectedVersion: z
+            .number()
+            .int()
+            .nonnegative()
+            .describe("Use 0 when no workflow exists yet"),
+          document: z
+            .unknown()
+            .describe("The complete Studio workflow document"),
+        })
+        .strict(),
+      annotations: SAFE_WRITE,
+    },
+    async ({ jobId, expectedVersion, document }) =>
+      workflowWrite("draft", jobId, { expectedVersion, document })
+  );
+
+  server.registerTool(
+    "patch_workflow",
+    {
+      title: "Patch workflow",
+      description:
+        "Create a new workflow version by recursively merging a patch into the current version.",
+      inputSchema: z
+        .object({
+          jobId: uuid("The job ID"),
+          expectedVersion: z.number().int().positive(),
+          patch: z.record(z.string(), z.unknown()),
+        })
+        .strict(),
+      annotations: SAFE_WRITE,
+    },
+    async ({ jobId, expectedVersion, patch }) =>
+      workflowWrite("patch", jobId, { expectedVersion, patch })
+  );
+
+  server.registerTool(
+    "validate_workflow",
+    {
+      title: "Validate workflow",
+      description:
+        "Validate and compile the inspected workflow version without rendering or publishing it.",
+      inputSchema: z
+        .object({
+          jobId: uuid("The job ID"),
+          expectedVersion: z.number().int().positive(),
+        })
+        .strict(),
+      annotations: SAFE_WRITE,
+    },
+    async ({ jobId, expectedVersion }) =>
+      workflowWrite("validate", jobId, { expectedVersion })
+  );
+
+  server.registerTool(
+    "preview_workflow",
+    {
+      title: "Preview workflow",
+      description:
+        "Return the current workflow's compiled UniversalVideo brief for a safe pre-render preview.",
+      inputSchema: z.object({ jobId: uuid("The job ID") }).strict(),
+      annotations: READ_ONLY,
+    },
+    async ({ jobId }) =>
+      runTool(() =>
+        apiGet(
+          `/api/v1/jobs/${encodeURIComponent(jobId)}/workflow?operation=preview`
+        )
+      )
+  );
+
+  server.registerTool(
+    "compare_workflows",
+    {
+      title: "Compare workflow versions",
+      description: "Compare two durable workflow versions field by field.",
+      inputSchema: z
+        .object({
+          jobId: uuid("The job ID"),
+          fromVersion: z.number().int().positive(),
+          toVersion: z.number().int().positive(),
+        })
+        .strict(),
+      annotations: READ_ONLY,
+    },
+    async ({ jobId, fromVersion, toVersion }) => {
+      const query = new URLSearchParams({
+        operation: "compare",
+        fromVersion: String(fromVersion),
+        toVersion: String(toVersion),
+      });
+      return runTool(() =>
+        apiGet(
+          `/api/v1/jobs/${encodeURIComponent(
+            jobId
+          )}/workflow?${query.toString()}`
+        )
+      );
+    }
+  );
+
+  server.registerTool(
+    "approve_workflow",
+    {
+      title: "Approve workflow",
+      description:
+        "Validate and approve the inspected workflow version. This does not approve or publish the video job.",
+      inputSchema: z
+        .object({
+          jobId: uuid("The job ID"),
+          expectedVersion: z.number().int().positive(),
+        })
+        .strict(),
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+    },
+    async ({ jobId, expectedVersion }) =>
+      workflowWrite("approve", jobId, { expectedVersion })
+  );
+
+  server.registerTool(
+    "retry_video_qa",
+    {
+      title: "Retry video QA",
+      description:
+        "Retry the default QA evaluator against the same current frozen video. Use only when get_job_status recommends retryTarget qa_only, or when QA is missing, unavailable, or parse-degraded. This does not regenerate media and cannot clear publish gates by itself.",
+      inputSchema: {
+        jobId: uuid("The current job ID"),
+        runId: uuid("The current render run ID"),
+        videoArtifactId: uuid("The current frozen video artifact ID"),
+      },
+      annotations: SAFE_WRITE,
+    },
+    async ({ jobId, runId, videoArtifactId }) =>
+      runTool(() =>
+        apiPost(`/api/v1/jobs/${encodeURIComponent(jobId)}/qa/retry`, {
+          runId,
+          videoArtifactId,
+        })
+      )
+  );
+
+  server.registerTool(
+    "audit_video_qa",
+    {
+      title: "Audit video QA",
+      description:
+        "Run Qwen3.6-Plus as an advisory second evaluator against the same current frozen video. Use only on an explicit request for another model, second opinion, or evaluator escalation. The result is separate from default QA and has no publish-gate effect.",
+      inputSchema: {
+        jobId: uuid("The current job ID"),
+        runId: uuid("The current render run ID"),
+        videoArtifactId: uuid("The current frozen video artifact ID"),
+      },
+      annotations: SAFE_WRITE,
+    },
+    async ({ jobId, runId, videoArtifactId }) =>
+      runTool(() =>
+        apiPost(`/api/v1/jobs/${encodeURIComponent(jobId)}/qa/audit`, {
+          runId,
+          videoArtifactId,
+        })
+      )
+  );
+
+  server.registerTool(
+    "regenerate_narration",
+    {
+      title: "Regenerate narration",
+      description:
+        "Regenerate narration from the unchanged durable brief and then regenerate its dependent video in a paid adaptation run. Use only on an explicit user request or when get_job_status recommends retryTarget tts. This is an audio_and_video cascade, consumes rerender quota, and requires fresh QA.",
+      inputSchema: {
+        jobId: uuid("The current job ID"),
+        sourceRunId: uuid("The current run ID"),
+        trigger: z.enum(["user_requested", "verifier_recommendation"]),
+      },
+      annotations: SAFE_WRITE,
+    },
+    async ({ jobId, sourceRunId, trigger }) =>
+      runTool(() =>
+        apiPost(
+          `/api/v1/jobs/${encodeURIComponent(jobId)}/narration/regenerate`,
+          { sourceRunId, trigger }
+        )
+      )
   );
 
   server.registerTool(

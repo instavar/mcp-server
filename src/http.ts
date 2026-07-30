@@ -7,6 +7,7 @@
 import { randomUUID } from "node:crypto";
 
 export const API_KEY_HEADER = "x-api-key";
+const API_REQUEST_TIMEOUT_MS = 15_000;
 
 export function getApiKey(): string {
   const key = process.env.INSTAVAR_API_KEY?.trim();
@@ -43,7 +44,30 @@ function explain(status: number, body: unknown): string {
         : "insufficient scope";
     return `Forbidden (403): ${reason}. The key lacks the required scope for this action.`;
   }
+  if (status === 409) {
+    const reason =
+      body && typeof body === "object" && "error" in body
+        ? String((body as { error: unknown }).error)
+        : "The requested change conflicts with the current server state";
+    const recovery = /workflow changed/i.test(reason)
+      ? "Inspect the latest workflow state before retrying."
+      : "Resolve the reported conflict before retrying.";
+    return `Conflict (409): ${reason}. ${recovery}`;
+  }
   return "";
+}
+
+function requestFailure(error: unknown): string {
+  if (
+    error instanceof DOMException &&
+    (error.name === "AbortError" || error.name === "TimeoutError")
+  ) {
+    return "The Instavar API request timed out. Retry the tool call.";
+  }
+  if (error instanceof TypeError) {
+    return "The Instavar API request failed before a response arrived. Check connectivity and retry the tool call.";
+  }
+  return error instanceof Error ? error.message : String(error);
 }
 
 async function parse(res: Response): Promise<unknown> {
@@ -58,10 +82,15 @@ async function parse(res: Response): Promise<unknown> {
 export async function apiGet(path: string): Promise<HttpResult> {
   const res = await fetch(`${baseUrl()}${path}`, {
     headers: { [API_KEY_HEADER]: getApiKey() },
+    signal: AbortSignal.timeout(API_REQUEST_TIMEOUT_MS),
   });
   const body = await parse(res);
   const hint = explain(res.status, body);
-  return { ok: res.ok, status: res.status, body: hint ? { error: hint, body } : body };
+  return {
+    ok: res.ok,
+    status: res.status,
+    body: hint ? { error: hint, body } : body,
+  };
 }
 
 export async function apiPost(
@@ -79,10 +108,15 @@ export async function apiPost(
       "content-type": "application/json",
     },
     body: JSON.stringify(clean),
+    signal: AbortSignal.timeout(API_REQUEST_TIMEOUT_MS),
   });
   const body = await parse(res);
   const hint = explain(res.status, body);
-  return { ok: res.ok, status: res.status, body: hint ? { error: hint, body } : body };
+  return {
+    ok: res.ok,
+    status: res.status,
+    body: hint ? { error: hint, body } : body,
+  };
 }
 
 /**
@@ -134,7 +168,7 @@ export async function runTool(
       content: [
         {
           type: "text" as const,
-          text: error instanceof Error ? error.message : String(error),
+          text: requestFailure(error),
         },
       ],
       isError: true,

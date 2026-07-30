@@ -50,24 +50,40 @@ function call(name: string, args: Record<string, unknown> = {}) {
 function lastFetch() {
   const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
   const headers = (init?.headers ?? {}) as Record<string, string>;
-  return { url: String(url), method: init?.method, headers, body: init?.body };
+  return {
+    url: String(url),
+    method: init?.method,
+    headers,
+    body: init?.body,
+    signal: init?.signal,
+  };
 }
 
 describe("registration", () => {
-  it("registers all 11 tools", () => {
+  it("registers all 21 tools", () => {
     expect([...handlers.keys()].sort()).toEqual(
       [
         "approve_job",
+        "audit_video_qa",
+        "approve_workflow",
+        "compare_workflows",
         "connect_account",
         "connect_account_status",
         "create_video_brief",
+        "draft_workflow",
         "edit_video_brief",
         "get_cost_summary",
         "get_job_metrics",
         "get_job_status",
         "get_video_state",
+        "inspect_workflow",
         "list_jobs",
+        "patch_workflow",
+        "preview_workflow",
         "publish_job",
+        "regenerate_narration",
+        "retry_video_qa",
+        "validate_workflow",
       ].sort()
     );
   });
@@ -87,6 +103,9 @@ describe("registration", () => {
       "get_video_state",
       "get_job_metrics",
       "get_cost_summary",
+      "inspect_workflow",
+      "preview_workflow",
+      "compare_workflows",
       "connect_account_status",
     ];
     for (const [name, config] of configs) {
@@ -119,6 +138,27 @@ describe("read tools → correct GET + x-api-key", () => {
     expect(f.method).toBeUndefined(); // GET
   });
 
+  it("inspect_workflow", async () => {
+    await call("inspect_workflow", { jobId: "job-1" });
+    expect(lastFetch().url).toMatch(/\/api\/v1\/jobs\/job-1\/workflow$/);
+  });
+
+  it("preview_workflow", async () => {
+    await call("preview_workflow", { jobId: "job-1" });
+    expect(lastFetch().url).toContain("workflow?operation=preview");
+  });
+
+  it("compare_workflows", async () => {
+    await call("compare_workflows", {
+      jobId: "job-1",
+      fromVersion: 1,
+      toVersion: 2,
+    });
+    expect(lastFetch().url).toContain(
+      "workflow?operation=compare&fromVersion=1&toVersion=2"
+    );
+  });
+
   it("get_job_status", async () => {
     await call("get_job_status", { jobId: "job-1" });
     expect(lastFetch().url).toMatch(/\/api\/v1\/jobs\/job-1$/);
@@ -131,7 +171,9 @@ describe("read tools → correct GET + x-api-key", () => {
 
   it("get_job_metrics", async () => {
     await call("get_job_metrics", { jobId: "job-1", limit: 7 });
-    expect(lastFetch().url).toMatch(/\/api\/v1\/jobs\/job-1\/metrics\?limit=7$/);
+    expect(lastFetch().url).toMatch(
+      /\/api\/v1\/jobs\/job-1\/metrics\?limit=7$/
+    );
   });
 
   it("get_cost_summary", async () => {
@@ -163,7 +205,7 @@ describe("write tools → correct POST + path", () => {
     expect(f.url).toMatch(/\/api\/v1\/jobs$/);
     expect(f.method).toBe("POST");
     expect(f.headers["x-api-key"]).toBe("ik_live_test");
-    expect(String(f.body)).toContain("\"title\":\"T\"");
+    expect(String(f.body)).toContain('"title":"T"');
   });
 
   it("edit_video_brief → POST /api/v1/jobs/:id/brief (jobId stripped from body)", async () => {
@@ -171,7 +213,7 @@ describe("write tools → correct POST + path", () => {
     const f = lastFetch();
     expect(f.url).toMatch(/\/api\/v1\/jobs\/job-1\/brief$/);
     expect(f.method).toBe("POST");
-    expect(String(f.body)).toContain("\"script\":\"new\"");
+    expect(String(f.body)).toContain('"script":"new"');
     expect(String(f.body)).not.toContain("jobId");
   });
 
@@ -183,9 +225,81 @@ describe("write tools → correct POST + path", () => {
     });
     const f = lastFetch();
     expect(f.url).toMatch(/\/api\/v1\/jobs\/job-1\/brief$/);
-    expect(String(f.body)).toContain("\"objective\":\"explainer\"");
-    expect(String(f.body)).toContain("\"publishTarget\":\"tiktok\"");
+    expect(String(f.body)).toContain('"objective":"explainer"');
+    expect(String(f.body)).toContain('"publishTarget":"tiktok"');
   });
+
+  it("retry_video_qa posts the exact frozen target", async () => {
+    await call("retry_video_qa", {
+      jobId: "job-1",
+      runId: "run-1",
+      videoArtifactId: "video-1",
+    });
+    const f = lastFetch();
+    expect(f.url).toMatch(/\/api\/v1\/jobs\/job-1\/qa\/retry$/);
+    expect(f.method).toBe("POST");
+    expect(String(f.body)).toContain('"runId":"run-1"');
+    expect(String(f.body)).toContain('"videoArtifactId":"video-1"');
+  });
+
+  it("audit_video_qa posts the exact frozen target", async () => {
+    await call("audit_video_qa", {
+      jobId: "job-1",
+      runId: "run-1",
+      videoArtifactId: "video-1",
+    });
+    const f = lastFetch();
+    expect(f.url).toMatch(/\/api\/v1\/jobs\/job-1\/qa\/audit$/);
+    expect(f.method).toBe("POST");
+    expect(String(f.body)).toContain('"runId":"run-1"');
+    expect(String(f.body)).toContain('"videoArtifactId":"video-1"');
+  });
+
+  it("regenerate_narration relays the source run and trigger", async () => {
+    await call("regenerate_narration", {
+      jobId: "job-1",
+      sourceRunId: "run-1",
+      trigger: "verifier_recommendation",
+    });
+    const f = lastFetch();
+    expect(f.url).toMatch(/\/api\/v1\/jobs\/job-1\/narration\/regenerate$/);
+    expect(f.method).toBe("POST");
+    expect(String(f.body)).toContain('"sourceRunId":"run-1"');
+    expect(String(f.body)).toContain('"trigger":"verifier_recommendation"');
+  });
+
+  it("draft_workflow forwards the durable document", async () => {
+    await call("draft_workflow", {
+      jobId: "job-1",
+      expectedVersion: 0,
+      document: { kind: "documentary-journey" },
+    });
+    const f = lastFetch();
+    expect(f.url).toMatch(/\/api\/v1\/jobs\/job-1\/workflow$/);
+    expect(String(f.body)).toContain('"operation":"draft"');
+    expect(String(f.body)).toContain('"expectedVersion":0');
+  });
+
+  it("patch_workflow forwards optimistic concurrency", async () => {
+    await call("patch_workflow", {
+      jobId: "job-1",
+      expectedVersion: 2,
+      patch: { label: "New label" },
+    });
+    const f = lastFetch();
+    expect(String(f.body)).toContain('"expectedVersion":2');
+    expect(String(f.body)).toContain('"operation":"patch"');
+  });
+
+  it.each(["validate_workflow", "approve_workflow"])(
+    "%s posts the matching operation",
+    async (tool) => {
+      await call(tool, { jobId: "job-1", expectedVersion: 3 });
+      const operation = tool.replace("_workflow", "");
+      expect(String(lastFetch().body)).toContain(`"operation":"${operation}"`);
+      expect(String(lastFetch().body)).toContain('"expectedVersion":3');
+    }
+  );
 
   it("approve_job → POST /api/v1/jobs/:id/approve", async () => {
     await call("approve_job", { jobId: "job-1" });
@@ -195,7 +309,10 @@ describe("write tools → correct POST + path", () => {
   });
 
   it("publish_job → POST /api/jobs/:id/publish (NOT /api/v1)", async () => {
-    await call("publish_job", { jobId: "job-1", youtubePrivacyStatus: "private" });
+    await call("publish_job", {
+      jobId: "job-1",
+      youtubePrivacyStatus: "private",
+    });
     const f = lastFetch();
     expect(f.url).toMatch(/\/api\/jobs\/job-1\/publish$/);
     expect(f.url).not.toContain("/api/v1/");
@@ -210,7 +327,7 @@ describe("connect tools → device-pairing endpoints", () => {
     expect(f.url).toMatch(/\/api\/v1\/connect\/start$/);
     expect(f.method).toBe("POST");
     expect(f.headers["x-api-key"]).toBe("ik_live_test");
-    expect(String(f.body)).toContain("\"provider\":\"youtube\"");
+    expect(String(f.body)).toContain('"provider":"youtube"');
   });
 
   it("connect_account_status → GET /api/v1/connect/poll?pairingId=", async () => {
@@ -292,10 +409,76 @@ describe("auth + error surfacing", () => {
     expect(res.content[0]!.text).toContain("scope_publish_required");
   });
 
+  it("409 preserves the conflict and tells the caller to re-inspect", async () => {
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          error: "Workflow changed. Expected version 1, current version is 2",
+        }),
+        { status: 409 }
+      )
+    );
+    const res = await call("patch_workflow", {
+      jobId: "123e4567-e89b-12d3-a456-426614174000",
+      expectedVersion: 1,
+      patch: { label: "Stale" },
+    });
+    expect(res.isError).toBe(true);
+    expect(res.content[0]!.text).toContain("Conflict (409)");
+    expect(res.content[0]!.text).toContain("Inspect the latest workflow state");
+  });
+
+  it("409 dependency conflicts do not incorrectly tell the caller to re-inspect", async () => {
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          error: "Upload is unavailable or not ready: upload-1",
+        }),
+        { status: 409 }
+      )
+    );
+    const res = await call("validate_workflow", {
+      jobId: "123e4567-e89b-12d3-a456-426614174000",
+      expectedVersion: 1,
+    });
+    expect(res.isError).toBe(true);
+    expect(res.content[0]!.text).toContain(
+      "Resolve the reported conflict before retrying"
+    );
+    expect(res.content[0]!.text).not.toContain(
+      "Inspect the latest workflow state"
+    );
+  });
+
+  it("turns a network rejection into a retryable tool error", async () => {
+    fetchMock.mockRejectedValue(new TypeError("fetch failed"));
+    const res = await call("inspect_workflow", {
+      jobId: "123e4567-e89b-12d3-a456-426614174000",
+    });
+    expect(res.isError).toBe(true);
+    expect(res.content[0]!.text).toContain("Check connectivity");
+    expect(res.content[0]!.text).not.toContain("fetch failed");
+  });
+
+  it("wires timeout signals and reports timeout aborts without leaking internals", async () => {
+    fetchMock.mockRejectedValue(
+      new DOMException("provider socket details", "TimeoutError")
+    );
+    const res = await call("inspect_workflow", {
+      jobId: "123e4567-e89b-12d3-a456-426614174000",
+    });
+    expect(res.isError).toBe(true);
+    expect(res.content[0]!.text).toContain("request timed out");
+    expect(res.content[0]!.text).not.toContain("provider socket details");
+    expect(lastFetch().signal).toBeInstanceOf(AbortSignal);
+  });
+
   it("honors INSTAVAR_BASE_URL override", async () => {
     process.env.INSTAVAR_BASE_URL = "https://staging.instavar.com/";
     await call("list_jobs", { limit: 1 });
-    expect(lastFetch().url).toMatch(/^https:\/\/staging\.instavar\.com\/api\/v1\/jobs/);
+    expect(lastFetch().url).toMatch(
+      /^https:\/\/staging\.instavar\.com\/api\/v1\/jobs/
+    );
   });
 });
 
