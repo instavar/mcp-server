@@ -2,6 +2,11 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { apiGet, apiPost, runTool } from "./http";
 import { createBriefShape, editBriefShape } from "./brief-schema";
+import { buildRenderDiagnosticSnapshot } from "./render-diagnostics";
+import {
+  applyDesignActionsToolSchema,
+  inspectDesignDocumentToolSchema,
+} from "./design-action-schema";
 
 const uuid = (desc: string) => z.string().uuid().describe(desc);
 
@@ -9,7 +14,12 @@ const uuid = (desc: string) => z.string().uuid().describe(desc);
 // openWorldHint defaults to true, so non-destructive writes and closed-API
 // tools must say so explicitly. All tools talk only to the Instavar API (a
 // closed system) except the two that reach external social platforms.
-const READ_ONLY = { readOnlyHint: true, openWorldHint: false } as const;
+const READ_ONLY = {
+  readOnlyHint: true,
+  destructiveHint: false,
+  idempotentHint: true,
+  openWorldHint: false,
+} as const;
 const SAFE_WRITE = {
   readOnlyHint: false,
   destructiveHint: false,
@@ -86,6 +96,26 @@ export function registerTools(server: McpServer): void {
   );
 
   server.registerTool(
+    "diagnose_render",
+    {
+      title: "Diagnose render",
+      description:
+        "Build one read-only troubleshooting snapshot from the current job status and video state. Reports run failures, artifact binding, duration evidence, retry recommendations, rights checks, and whether blank-frame or placeholder verification evidence exists. It does not visually inspect the video.",
+      inputSchema: { jobId: uuid("The job ID to diagnose") },
+      annotations: READ_ONLY,
+    },
+    async ({ jobId }) =>
+      runTool(async () => {
+        const encodedJobId = encodeURIComponent(jobId);
+        const [jobStatus, videoState] = await Promise.all([
+          apiGet(`/api/v1/jobs/${encodedJobId}`),
+          apiGet(`/api/v1/jobs/${encodedJobId}/video-state`),
+        ]);
+        return buildRenderDiagnosticSnapshot({ jobStatus, videoState });
+      })
+  );
+
+  server.registerTool(
     "get_job_metrics",
     {
       title: "Get job metrics",
@@ -157,6 +187,48 @@ export function registerTools(server: McpServer): void {
     async ({ jobId }) =>
       runTool(() =>
         apiGet(`/api/v1/jobs/${encodeURIComponent(jobId)}/workflow`)
+      )
+  );
+
+  server.registerTool(
+    "inspect_design_document",
+    {
+      title: "Inspect design document",
+      description:
+        "Inspect one versioned design document and its recent immutable version history. This tool never changes the document.",
+      inputSchema: inspectDesignDocumentToolSchema,
+      annotations: READ_ONLY,
+    },
+    async ({ projectId, documentId, includeVersions }) => {
+      const query = new URLSearchParams({
+        documentId,
+        includeVersions: includeVersions ? "1" : "0",
+      });
+      return runTool(() =>
+        apiGet(
+          `/api/v1/projects/${encodeURIComponent(
+            projectId
+          )}/design?${query.toString()}`
+        )
+      );
+    }
+  );
+
+  server.registerTool(
+    "apply_design_actions",
+    {
+      title: "Apply design actions",
+      description:
+        "Apply a reviewed group of closed, invertible design actions to an expected document version. Inspect first. A stale version returns a readable conflict and does not overwrite customer work.",
+      inputSchema: applyDesignActionsToolSchema,
+      annotations: SAFE_WRITE,
+    },
+    async (input) =>
+      runTool(() =>
+        apiPost(
+          `/api/v1/projects/${encodeURIComponent(input.projectId)}/design`,
+          input
+        )
       )
   );
 

@@ -34,7 +34,13 @@ async function main(): Promise<void> {
     return;
   }
 
-  const server = new McpServer({ name: "instavar", version: VERSION });
+  const server = new McpServer(
+    { name: "instavar", version: VERSION },
+    {
+      instructions:
+        "Before drafting concise carousel or video copy, call get_creative_guide for visual-copy. Use the carousel-stories, visual-design and human-review guides as relevant. Apply them to the user brief; the guides do not generate, render, save or publish media.",
+    }
+  );
   registerConfiguredTools(server);
   await server.connect(new StdioServerTransport());
 }

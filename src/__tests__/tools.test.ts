@@ -60,9 +60,11 @@ function lastFetch() {
 }
 
 describe("registration", () => {
-  it("registers all 21 tools", () => {
+  it("registers all 24 tools", () => {
     expect([...handlers.keys()].sort()).toEqual(
       [
+        "apply_design_actions",
+        "inspect_design_document",
         "approve_job",
         "audit_video_qa",
         "approve_workflow",
@@ -70,6 +72,7 @@ describe("registration", () => {
         "connect_account",
         "connect_account_status",
         "create_video_brief",
+        "diagnose_render",
         "draft_workflow",
         "edit_video_brief",
         "get_cost_summary",
@@ -98,9 +101,11 @@ describe("registration", () => {
 
   it("read tools are readOnlyHint, writes are not", () => {
     const readTools = [
+      "inspect_design_document",
       "list_jobs",
       "get_job_status",
       "get_video_state",
+      "diagnose_render",
       "get_job_metrics",
       "get_cost_summary",
       "inspect_workflow",
@@ -174,6 +179,33 @@ describe("read tools → correct GET + x-api-key", () => {
     expect(lastFetch().url).toMatch(
       /\/api\/v1\/jobs\/job-1\/metrics\?limit=7$/
     );
+  });
+
+  it("diagnose_render joins status and video-state reads", async () => {
+    fetchMock
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            id: "job-1",
+            runs: [],
+            artifacts: [],
+            verificationTimeline: [],
+          }),
+          { status: 200 }
+        )
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ state: {} }), { status: 200 })
+      );
+
+    const result = await call("diagnose_render", { jobId: "job-1" });
+
+    expect(result.isError).not.toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls.map(([url]) => String(url))).toEqual([
+      "https://instavar.com/api/v1/jobs/job-1",
+      "https://instavar.com/api/v1/jobs/job-1/video-state",
+    ]);
   });
 
   it("get_cost_summary", async () => {

@@ -4,14 +4,18 @@
 [![npm](https://img.shields.io/npm/v/%40instavar%2Fmcp-server)](https://www.npmjs.com/package/@instavar/mcp-server)
 [![Glama score](https://glama.ai/mcp/servers/instavar/mcp-server/badges/score.svg)](https://glama.ai/mcp/servers/instavar/mcp-server)
 
-Make local videos with Instavar's open-source Remotion templates from Claude
-Code or Codex. The public template, schema, scaffold, and troubleshooting tools
-work without an account or API key.
+One MCP package starts free and grows with the work. Make local videos with
+Instavar's independent, open-source templates for Remotion from Claude Code or
+Codex without an account or API key.
+
+Instavar is an independent project and is not affiliated with, sponsored by, or
+endorsed by Remotion AG. Remotion is a trademark of Remotion AG.
 
 Add an Instavar API key when you want the hosted workflow:
 **create → render → approve → publish → metrics**. The authenticated tools are
 thin HTTP clients to the hosted Instavar API. The package holds **no database
-connection** and stores no data of its own.
+connection** and stores no data of its own. You keep the free tools and do not
+install a second server.
 
 ## Which model runs?
 
@@ -101,6 +105,7 @@ Hosted tools, available when `INSTAVAR_API_KEY` is configured:
 | `list_jobs`              | List recent jobs (newest first).                                                               |
 | `get_job_status`         | Runs, artifacts, verifications, current video + thumbnail URLs.                                |
 | `get_video_state`        | Materialized composition state for a job.                                                      |
+| `diagnose_render`        | Read-only joined render diagnosis with evidence limits and retry recommendations.              |
 | `get_job_metrics`        | Platform engagement snapshots for a published job.                                             |
 | `get_cost_summary`       | Infra cost summary (Lambda / RunPod / R2 / WaveSpeed / PoYo).                                  |
 | `inspect_workflow`       | Read the current workflow and its version history.                                             |
@@ -148,3 +153,18 @@ npx @instavar/mcp-server --help
 ## License
 
 MIT
+
+## Creative guidance
+
+`get_creative_guide` works without a key. Omit `guideId` to discover the four
+guides, or choose `visual-copy`, `carousel-stories`, `visual-design` or
+`human-review`. The same text is available as Markdown resources at
+`instavar://creative-guides/<guideId>`. The calling assistant applies the guidance
+to the user's brief; this tool does not generate copy, render, save feedback or
+publish media. Carousel recipes are planning guidance, not additional npm renderers.
+
+The monorepo sources live in `docs/guides/creative/`. After an edit, run
+`node scripts/build-creative-guides.mjs`; `--check` rejects a stale bundle.
+The generated TypeScript is bundled into the package, so installed clients need
+no checkout files or access to private knowledge stores. Source changes require
+a normal npm release before installed clients receive them.

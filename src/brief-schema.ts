@@ -158,6 +158,58 @@ export const briefAudioLayerSchema = z.object({
   role: z.enum(["music", "foley", "transition", "effect"]),
 });
 
+export const protectedRegionEffectSchema = z
+  .object({
+    id: z.string().min(1).max(80),
+    kind: z.literal("border-glint"),
+    coordinateSpace: z.literal("output-frame-v1").default("output-frame-v1"),
+    region: z.object({
+      leftPercent: z.number().min(0).max(100),
+      topPercent: z.number().min(0).max(100),
+      widthPercent: z.number().positive().max(100),
+      heightPercent: z.number().positive().max(100),
+    }),
+    startFrame: z.number().int().nonnegative().default(0),
+    endFrame: z.number().int().positive(),
+    speedUpFrame: z.number().int().nonnegative().optional(),
+    color: z.string().max(64).default("#ffffff"),
+    thicknessPercent: z.number().positive().max(20).default(3),
+  })
+  .superRefine((effect, context) => {
+    if (effect.region.leftPercent + effect.region.widthPercent > 100) {
+      context.addIssue({
+        code: "custom",
+        message: "Protected region exceeds the output frame width.",
+        path: ["region", "widthPercent"],
+      });
+    }
+    if (effect.region.topPercent + effect.region.heightPercent > 100) {
+      context.addIssue({
+        code: "custom",
+        message: "Protected region exceeds the output frame height.",
+        path: ["region", "heightPercent"],
+      });
+    }
+    if (effect.endFrame <= effect.startFrame) {
+      context.addIssue({
+        code: "custom",
+        message: "Effect endFrame must be after startFrame.",
+        path: ["endFrame"],
+      });
+    }
+    if (
+      effect.speedUpFrame !== undefined &&
+      (effect.speedUpFrame < effect.startFrame ||
+        effect.speedUpFrame >= effect.endFrame)
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "speedUpFrame must fall inside the effect window.",
+        path: ["speedUpFrame"],
+      });
+    }
+  });
+
 export const beatVisualRequestSchema = z
   .object({
     intent: z.string().trim().min(1).optional(),
@@ -240,6 +292,12 @@ export const briefSceneSchema = z.object({
   overlayBackgroundColor: z.string().optional(),
   cutFlash: z.boolean().optional(),
   muted: z.boolean().optional(),
+  protectedRegionEffects: z
+    .array(protectedRegionEffectSchema)
+    .max(4)
+    .optional(),
+  flashAtFrame: z.number().int().nonnegative().optional(),
+  flashDurationFrames: z.number().int().positive().max(15).optional(),
 });
 
 /**
@@ -304,9 +362,25 @@ export const createBriefShape = {
     .min(1)
     .describe("Social caption with hooks, hashtags, CTA"),
   publishTarget: z.enum(PUBLISH_TARGETS).describe("Target social platform"),
+  publishTargets: z
+    .array(z.enum(PUBLISH_TARGETS))
+    .max(9)
+    .optional()
+    .describe("All allowed social destinations for this video"),
   objective: z
     .enum(BRIEF_OBJECTIVES)
     .describe("Content objective (drives composition routing)"),
+  targetDurationSeconds: z
+    .number()
+    .int()
+    .min(5)
+    .max(600)
+    .optional()
+    .describe("Requested final video duration in seconds"),
+  narrationMode: z
+    .enum(["tts", "off"])
+    .optional()
+    .describe("Disable synthesized narration for source-audio or silent work"),
   lessonTitle: z
     .string()
     .optional()
@@ -366,6 +440,10 @@ export const editBriefShape = {
   script: z.string().optional().describe("Updated narration script"),
   caption: z.string().optional().describe("Updated social caption"),
   lessonTitle: z.string().optional().describe("Updated lesson title"),
+  narrationMode: z
+    .enum(["tts", "off"])
+    .optional()
+    .describe("Updated synthesized narration mode"),
   visualDirection: visualDirectionSchema
     .optional()
     .describe("Updated whole-video visual direction"),
@@ -393,6 +471,18 @@ export const editBriefShape = {
     .describe(
       "Updated target social platform. Distribution metadata only - does not trigger a re-render."
     ),
+  publishTargets: z
+    .array(z.enum(PUBLISH_TARGETS))
+    .max(9)
+    .optional()
+    .describe("Replacement allowed social destination list"),
+  targetDurationSeconds: z
+    .number()
+    .int()
+    .min(5)
+    .max(600)
+    .optional()
+    .describe("Updated final video duration in seconds"),
   voiceId: z
     .string()
     .optional()

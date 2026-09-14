@@ -1,9 +1,14 @@
+import {
+  CREATIVE_GUIDE_INDEX,
+  registerCreativeGuides,
+} from "./creative-guides";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
 const TEMPLATE_REPOSITORY = "https://github.com/instavar/remotion-templates";
 const TEMPLATE_ENDPOINT = "https://instavar.com/api/mcp/templates";
+const VOICE_STUDIO_URL = "https://instavar.com/voice";
 const templateIds = [
   "qa-ad",
   "proof-walkthrough",
@@ -91,6 +96,42 @@ const videoSpecSchema = {
         fixedDurationSec: { type: "number", exclusiveMinimum: 0 },
       },
     },
+    audio: {
+      type: "object",
+      properties: {
+        mode: { enum: ["auto", "narration", "music", "silent"] },
+        narrationText: { type: "string" },
+        narrationSrc: { type: "string" },
+        narrationVolume: { type: "number", minimum: 0, maximum: 1 },
+        musicSrc: { type: "string" },
+        musicVolume: { type: "number", minimum: 0, maximum: 1 },
+        ducking: { type: "boolean" },
+        narrationTiming: {
+          type: "object",
+          required: ["schemaVersion", "source", "durationMs", "segments"],
+          properties: {
+            schemaVersion: { const: "1.0" },
+            source: { const: "segmented-synthesis" },
+            durationMs: { type: "integer", minimum: 1 },
+            segments: {
+              type: "array",
+              minItems: 1,
+              maxItems: 24,
+              items: {
+                type: "object",
+                required: ["sceneId", "startMs", "endMs", "durationMs"],
+                properties: {
+                  sceneId: { type: "string", minLength: 1 },
+                  startMs: { type: "integer", minimum: 0 },
+                  endMs: { type: "integer", minimum: 1 },
+                  durationMs: { type: "integer", minimum: 1 },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     scenes: {
       type: "array",
       minItems: 1,
@@ -102,6 +143,8 @@ const videoSpecSchema = {
           kind: {
             enum: [
               "hero",
+              "statement",
+              "mechanism",
               "points",
               "equation",
               "video-window",
@@ -112,6 +155,17 @@ const videoSpecSchema = {
           content: { type: "object" },
           timing: { type: "object" },
         },
+      },
+    },
+    style: {
+      type: "object",
+      properties: {
+        theme: {
+          enum: ["default", "editorial-light", "editorial-dark", "clinical"],
+        },
+        variant: { type: "string" },
+        safeAreaProfile: { enum: ["baseline", "metaSafe"] },
+        showSceneLabels: { type: "boolean", default: false },
       },
     },
   },
@@ -156,37 +210,79 @@ export function scaffoldVideoSpec(args: {
         title: args.title,
         subtitle: "Replace with a concise promise",
       },
+      timing: { durationMs: 4000 },
     },
   ];
   if (args.templateId === "qa-ad" || args.templateId === "social-remix") {
     scenes.push({
       id: "source-video",
       kind: "video-window",
-      content: { src: args.mediaSrc ?? "public/replace-with-your-video.mp4" },
+      content: {
+        title: "See it in context",
+        src: args.mediaSrc ?? "public/replace-with-your-video.mp4",
+      },
+      timing: { durationMs: 7000 },
     });
   }
-  scenes.push({
-    id: args.templateId === "proof-walkthrough" ? "working" : "key-points",
-    kind: args.templateId === "proof-walkthrough" ? "equation" : "points",
-    content:
-      args.templateId === "proof-walkthrough"
-        ? {
-            title: "Work through the idea",
-            latexBlocks: ["x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}"],
-          }
-        : {
-            title: "Key points",
-            points: [
-              "Replace with evidence",
-              "Replace with explanation",
-              "Replace with takeaway",
-            ],
-          },
-  });
+  if (args.templateId === "announcement-brief") {
+    scenes.push(
+      {
+        id: "context",
+        kind: "statement",
+        content: {
+          title: "Name the change",
+          subtitle: "Explain why it matters in one sentence",
+        },
+        timing: { durationMs: 6000 },
+      },
+      {
+        id: "mechanism",
+        kind: "mechanism",
+        content: {
+          title: "Show how the change happens",
+          before: "Before",
+          after: "After",
+        },
+        timing: { durationMs: 7000 },
+      },
+      {
+        id: "outcomes",
+        kind: "points",
+        content: {
+          title: "What changes",
+          points: ["First outcome", "Second outcome", "Third outcome"],
+        },
+        timing: { durationMs: 7000 },
+      }
+    );
+  } else {
+    scenes.push({
+      id: args.templateId === "proof-walkthrough" ? "working" : "key-points",
+      kind: args.templateId === "proof-walkthrough" ? "equation" : "points",
+      content:
+        args.templateId === "proof-walkthrough"
+          ? {
+              title: "Work through the idea",
+              latexBlocks: ["x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}"],
+            }
+          : {
+              title: "Key points",
+              points: [
+                "Replace with evidence",
+                "Replace with explanation",
+                "Replace with takeaway",
+              ],
+            },
+      timing: { durationMs: 8000 },
+    });
+  }
   scenes.push({
     id: "cta",
     kind: "cta",
     content: { line1: "Replace with the next action" },
+    timing: {
+      durationMs: args.templateId === "announcement-brief" ? 6000 : 5000,
+    },
   });
   return {
     schemaVersion: "1.0",
@@ -195,17 +291,28 @@ export function scaffoldVideoSpec(args: {
     meta: { title: args.title, tags: [] },
     target: { aspect: args.aspect, fps: 30, durationMode: "auto" },
     style: {
-      theme: "default",
+      theme:
+        args.templateId === "announcement-brief"
+          ? "editorial-light"
+          : "default",
       variant: "default",
       safeAreaProfile: "metaSafe",
+      showSceneLabels: false,
     },
-    audio: { ducking: true },
+    audio: {
+      mode: "silent",
+      narrationText: "",
+      narrationVolume: 1,
+      musicVolume: 0.16,
+      ducking: true,
+    },
     assets: {},
     scenes,
   };
 }
 
 export function registerPublicTemplateTools(server: McpServer): void {
+  registerCreativeGuides(server);
   server.registerTool(
     "get_capabilities",
     {
@@ -222,13 +329,24 @@ export function registerPublicTemplateTools(server: McpServer): void {
           apiKeyConfigured: Boolean(process.env.INSTAVAR_API_KEY?.trim()),
           repository: TEMPLATE_REPOSITORY,
           endpoint: TEMPLATE_ENDPOINT,
+          creativeGuides: CREATIVE_GUIDE_INDEX,
           localFeatures: [
             "template discovery",
             "VideoSpec schema and examples",
             "deterministic scaffolding",
             "local render instructions",
             "render error diagnosis",
+            "keyless on-device narration with scene timing",
+            "every-scene preview frames",
+            "post-render audible-audio verification",
           ],
+          narration: {
+            url: VOICE_STUDIO_URL,
+            cost: "free",
+            apiKeyRequired: false,
+            guidance:
+              "Write one paragraph per scene. Download the WAV and timing manifest, then apply both before rendering.",
+          },
           accountFeatures: [
             "managed rendering and storage",
             "workflow review and approval",
@@ -356,9 +474,12 @@ export function registerPublicTemplateTools(server: McpServer): void {
         `git clone ${TEMPLATE_REPOSITORY}.git`,
         "cd remotion-templates",
         "npm install",
+        `# Generate one narration paragraph per scene at ${VOICE_STUDIO_URL}`,
+        "npm run video:timing -- path/to/video.video.json --audio public/generated/narration.wav --manifest path/to/narration.timing.json",
         "npm run video:validate -- path/to/video.video.json",
         "npm run video:preview -- path/to/video.video.json",
         "npm run video:render -- path/to/video.video.json",
+        "npm run video:qa -- path/to/video.video.json path/to/video.mp4",
       ];
       return result(
         { repository: TEMPLATE_REPOSITORY, client, commands },

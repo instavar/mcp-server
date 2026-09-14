@@ -1,6 +1,6 @@
 {
   "name": "@instavar/mcp-server",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "mcpName": "com.instavar/mcp-server",
   "description": "Make local videos with Instavar Remotion templates for free, then add an API key for hosted Studio workflows.",
   "type": "module",
