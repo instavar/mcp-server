@@ -1,20 +1,22 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "com.instavar/mcp-server",
-  "description": "Make local Remotion videos free, then add an API key for hosted Instavar workflows.",
+  "description": "Free Remotion video templates and creative guides; optional hosted Studio rendering and publishing.",
   "status": "active",
   "repository": {
     "url": "https://github.com/instavar/mcp-server",
     "source": "github"
   },
   "version": "0.5.0",
-  "websiteUrl": "https://instavar.com",
+  "websiteUrl": "https://instavar.com/remotion",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@instavar/mcp-server",
       "version": "0.5.0",
-      "transport": { "type": "stdio" },
+      "transport": {
+        "type": "stdio"
+      },
       "environmentVariables": [
         {
           "name": "INSTAVAR_API_KEY",
@@ -33,27 +35,37 @@
     }
   ],
   "_meta": {
-    "tools": [
-      "get_capabilities",
-      "get_creative_guide",
-      "list_templates",
-      "get_template",
-      "get_video_schema",
-      "get_example",
-      "scaffold_video_spec",
-      "get_render_instructions",
-      "diagnose_render_error",
-      "list_jobs",
-      "get_job_status",
-      "get_video_state",
-      "get_job_metrics",
-      "get_cost_summary",
-      "create_video_brief",
-      "edit_video_brief",
-      "approve_job",
-      "publish_job",
-      "connect_account",
-      "connect_account_status"
-    ]
-  }
+    "io.modelcontextprotocol.registry/publisher-provided": {
+      "discovery": {
+        "keywords": [
+          "video-editing",
+          "remotion",
+          "video-templates",
+          "creative-guidance",
+          "programmatic-video",
+          "claude-code",
+          "codex"
+        ],
+        "freeTools": [
+          "get_capabilities",
+          "get_creative_guide",
+          "list_templates",
+          "get_template",
+          "get_video_schema",
+          "get_example",
+          "scaffold_video_spec",
+          "get_render_instructions",
+          "diagnose_render_error"
+        ],
+        "startHere": "Call get_capabilities, then list_templates and get_template before scaffolding a VideoSpec. Get local rendering instructions to produce a video on the user's machine.",
+        "authentication": "No account or API key for template tools and creative guides. INSTAVAR_API_KEY unlocks separate hosted Studio workflows.",
+        "boundaries": "Planning and scaffolding do not render, upload or publish media. Hosted production can incur costs. Publishing requires explicit user approval. Independent of Remotion AG.",
+        "remotePlanningEndpoint": "https://instavar.com/api/mcp/templates",
+        "remotePlanningNote": "Related HTTP product surface, not identical to the npm tool inventory: anonymous video/carousel planning and optional OAuth private project review.",
+        "protectedStudioEndpoint": "https://instavar.com/api/mcp/mcp",
+        "protectedStudioNote": "Separate hosted Studio surface; OAuth authentication required."
+      }
+    }
+  },
+  "title": "Instavar Video Templates and Studio"
 }

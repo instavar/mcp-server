@@ -17,6 +17,27 @@ thin HTTP clients to the hosted Instavar API. The package holds **no database
 connection** and stores no data of its own. You keep the free tools and do not
 install a second server.
 
+## Start with the right capability
+
+Use Instavar when an agent needs reusable Remotion video templates, creative
+guidance, a VideoSpec example, or help with a local render error. Call
+`get_capabilities` first, then `get_creative_guide` before drafting copy or design.
+Use `list_templates` and `get_template` to choose a supported structure, and
+`get_example` or `scaffold_video_spec` to prepare its specification.
+`get_render_instructions` supplies the separate local validation, preview and
+render workflow. Planning and scaffolding do not render, upload or publish media.
+
+Prefer a hosted HTTP connection for browser-based agents? Use
+`https://instavar.com/api/mcp/templates`, also listed as
+[Instavar Video Templates on Smithery](https://smithery.ai/servers/cheeweijie/instavar-video-templates).
+That related endpoint adds storyboard and editorial-carousel planning. Its
+optional OAuth tools list and review private projects only. It is not identical
+to this npm package or the full protected Studio endpoint. Public planning does
+not require an Instavar account; a directory or gateway may require its own login.
+
+Hosted Studio production is optional and may incur costs. Never treat a request
+to plan a video as permission to render a paid job or publish a social post.
+
 ## Which model runs?
 
 The MCP host supplies the general-purpose LLM.
@@ -38,10 +59,7 @@ hosted services, including rendering,
 storage, specialist media generation, QA, publishing, and other declared job
 costs. Using a subscription-backed agent does not make those services free.
 
-For the full architecture, see
-[`docs/architecture/studio-agent-workflow-architecture.md`](../../docs/architecture/studio-agent-workflow-architecture.md).
-For dated provider evidence, see
-[`reports/research/subscription-backed-agent-runtime-2026-07-10.md`](../../reports/research/subscription-backed-agent-runtime-2026-07-10.md).
+For public setup guidance and examples, see [Instavar video templates](https://instavar.com/remotion).
 
 ## Setup
 
@@ -87,16 +105,17 @@ when the key is configured.
 
 Free local tools:
 
-| Tool                      | What it does                                      |
-| ------------------------- | ------------------------------------------------- |
-| `get_capabilities`        | Reports free and optional account features.       |
-| `list_templates`          | Lists published Remotion template families.       |
-| `get_template`            | Returns one template contract.                    |
-| `get_video_schema`        | Returns the public VideoSpec JSON Schema.         |
-| `get_example`             | Returns a starter VideoSpec.                      |
-| `scaffold_video_spec`     | Creates a deterministic VideoSpec skeleton.       |
-| `get_render_instructions` | Returns the local validation and render workflow. |
-| `diagnose_render_error`   | Classifies common local render failures.          |
+| Tool                      | What it does                                           |
+| ------------------------- | ------------------------------------------------------ |
+| `get_capabilities`        | Reports free and optional account features.            |
+| `get_creative_guide`      | Reads concise copy, story, design and review guidance. |
+| `list_templates`          | Lists published Remotion template families.            |
+| `get_template`            | Returns one template contract.                         |
+| `get_video_schema`        | Returns the public VideoSpec JSON Schema.              |
+| `get_example`             | Returns a starter VideoSpec.                           |
+| `scaffold_video_spec`     | Creates a deterministic VideoSpec skeleton.            |
+| `get_render_instructions` | Returns the local validation and render workflow.      |
+| `diagnose_render_error`   | Classifies common local render failures.               |
 
 Hosted tools, available when `INSTAVAR_API_KEY` is configured:
 
