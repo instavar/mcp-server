@@ -242,6 +242,12 @@ export const briefSceneSchema = z.object({
     "image-window",
     "custom",
   ]),
+  layoutPreset: z
+    .literal("dark-cafe-announcement")
+    .optional()
+    .describe(
+      "Built-in portrait coffee illustration with title, subtitle body and text CTA. Use only on a custom scene after the user selects this design. No generated assets."
+    ),
   durationInFrames: z.number().optional(),
   narrationText: z.string().optional(),
   visualResolution: beatVisualRequestSchema.optional(),
@@ -353,6 +359,62 @@ export const directionsBriefSchema = z.object({
     .optional(),
 });
 
+/**
+ * Person-consent declaration. Vendored from lib/legal/upload-consent.ts (this
+ * package ships standalone); keep the wording and version in sync. Instavar
+ * rejects a brief that uses an uploaded image or video without it.
+ */
+export const PERSON_CONSENT_WORDING_VERSION = "2026-10-19.1";
+export const PERSON_CONSENT_WORDING =
+  "I have permission from everyone shown, and no one shown is under 18 unless I am their parent or guardian.";
+export const personConsentSchema = z
+  .object({
+    confirmed: z
+      .literal(true)
+      .describe("Must be true: the caller confirms the declaration below."),
+    wordingVersion: z
+      .string()
+      .describe(
+        `Version of the declaration the caller confirmed. Current: ${PERSON_CONSENT_WORDING_VERSION}.`
+      ),
+  })
+  .strict()
+  .describe(
+    `Required when the brief uses an uploaded image or video. Ask the user to confirm: "${PERSON_CONSENT_WORDING}"`
+  );
+
+/**
+ * Acknowledgement of the "someone other than you" warning. Vendored from
+ * lib/legal/likeness-hold-copy.ts; keep the wording and version in sync.
+ */
+export const LIKENESS_WARNING_WORDING_VERSION = "2026-10-19.1";
+export const LIKENESS_WARNING_WORDING =
+  "This photo seems to show someone other than you. Only continue if you have their permission.";
+export const LIKENESS_MINOR_WARNING_WORDING_VERSION = "2026-10-19.1";
+export const LIKENESS_MINOR_WARNING_WORDING =
+  "This may show someone under 18. Continue only if you are their parent or guardian, or have their parent or guardian's permission.";
+export const likenessAcknowledgementSchema = z
+  .object({
+    confirmed: z
+      .literal(true)
+      .describe("Must be true: the user accepted the warning below."),
+    kind: z
+      .enum(["other_person", "guardian"])
+      .optional()
+      .describe(
+        `Which warning was accepted. "other_person" (default): "${LIKENESS_WARNING_WORDING}" "guardian": "${LIKENESS_MINOR_WARNING_WORDING}"`
+      ),
+    wordingVersion: z
+      .string()
+      .describe(
+        `Version of the warning accepted. Current: other_person ${LIKENESS_WARNING_WORDING_VERSION}, guardian ${LIKENESS_MINOR_WARNING_WORDING_VERSION}.`
+      ),
+  })
+  .strict()
+  .describe(
+    "Optional. Send only after the user has seen and accepted the warning. Without it, a job that animates an uploaded photo of someone other than the account holder stops with likeness_acknowledgement_required, or likeness_guardian_confirmation_required when the person may be under 18."
+  );
+
 /** Raw shape for create_video_brief (passed to McpServer.tool). */
 export const createBriefShape = {
   title: z.string().min(1).max(120).describe("Short title (max 120 chars)"),
@@ -431,11 +493,15 @@ export const createBriefShape = {
     .array(briefAudioLayerSchema)
     .optional()
     .describe("Optional typed music, Foley, transition, and effect layers."),
+  personConsent: personConsentSchema.optional(),
+  likenessAcknowledgement: likenessAcknowledgementSchema.optional(),
 };
 
 /** Raw shape for edit_video_brief (jobId + the patchable brief fields). */
 export const editBriefShape = {
   jobId: z.string().uuid().describe("The job to edit"),
+  personConsent: personConsentSchema.optional(),
+  likenessAcknowledgement: likenessAcknowledgementSchema.optional(),
   title: z.string().optional().describe("Updated title"),
   script: z.string().optional().describe("Updated narration script"),
   caption: z.string().optional().describe("Updated social caption"),

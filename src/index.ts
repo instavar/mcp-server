@@ -1,3 +1,4 @@
+import { PAIRED_ANNOUNCEMENT_INSTRUCTIONS } from "./paired-announcement";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { registerConfiguredTools } from "./configured-tools";
@@ -38,6 +39,8 @@ async function main(): Promise<void> {
     { name: "instavar", version: VERSION },
     {
       instructions:
+        PAIRED_ANNOUNCEMENT_INSTRUCTIONS +
+        " " +
         "Before drafting concise carousel or video copy, call get_creative_guide for visual-copy. Use the carousel-stories, visual-design and human-review guides as relevant. Apply them to the user brief; the guides do not generate, render, save or publish media.",
     }
   );

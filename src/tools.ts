@@ -482,7 +482,8 @@ export function registerTools(server: McpServer): void {
       inputSchema: { jobId: uuid("The job ID to approve") },
       annotations: {
         readOnlyHint: false,
-        destructiveHint: false,
+        // Approval revokes active review links, so this is not purely additive.
+        destructiveHint: true,
         // Approving an already-approved job does not change state further.
         idempotentHint: true,
         openWorldHint: false,
@@ -502,6 +503,38 @@ export function registerTools(server: McpServer): void {
         "Publish an APPROVED job to its connected social destination via the gated publish API. All production gates run (paid plan, ownership, abuse, QA, disclosure, destination, rights, moderation). Requires a key with publish scope; the post goes live on the external platform and cannot be recalled by the API. For YouTube pass youtubePrivacyStatus:'private' for safe runs.",
       inputSchema: {
         jobId: uuid("The approved job to publish"),
+        xPreviewArtifactId: z
+          .string()
+          .min(1)
+          .optional()
+          .describe("X only. Exact reviewed video artifact ID."),
+        xCaption: z
+          .string()
+          .trim()
+          .min(1)
+          .max(2_000)
+          .optional()
+          .describe("X only. Exact post text approved by the user."),
+        xMadeWithAi: z
+          .boolean()
+          .optional()
+          .describe("X only. Enable the Made with AI disclosure."),
+        confirmXPublicPost: z
+          .boolean()
+          .optional()
+          .describe("True only after the user authorizes this public X post."),
+        confirmXAutomationPolicy: z
+          .boolean()
+          .optional()
+          .describe(
+            "True only after the user confirms the X automation policy."
+          ),
+        confirmXOriginalContent: z
+          .boolean()
+          .optional()
+          .describe(
+            "True only after the user confirms ownership or publishing rights."
+          ),
         youtubePrivacyStatus: z
           .enum(["private", "unlisted", "public"])
           .optional()

@@ -106,6 +106,8 @@ export async function apiPost(
     headers: {
       [API_KEY_HEADER]: getApiKey(),
       "content-type": "application/json",
+      // Labels person-consent declarations made through MCP (surface only).
+      "x-instavar-client": "mcp",
     },
     body: JSON.stringify(clean),
     signal: AbortSignal.timeout(API_REQUEST_TIMEOUT_MS),

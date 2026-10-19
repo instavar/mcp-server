@@ -1,0 +1,326 @@
+{
+  "author": "Instavar",
+  "authorUrl": "https://github.com/instavar",
+  "description": "Free Remotion video templates, creative guides, VideoSpec examples and local render diagnostics for AI agents. No Instavar account or API key is required for the nine public tools. An optional Instavar API key unlocks separate hosted Studio workflows, which may incur costs.",
+  "homepage": "https://instavar.com/remotion",
+  "identifier": "instavar-mcp-server",
+  "name": "Instavar Video Templates and Studio",
+  "prompts": [],
+  "resources": [
+    {
+      "name": "visual-copy",
+      "title": "Concise plain and poetic visual copy",
+      "uri": "instavar://creative-guides/visual-copy",
+      "description": "Concise plain and poetic visual copy",
+      "mimeType": "text/markdown"
+    },
+    {
+      "name": "carousel-stories",
+      "title": "Carousel story structures and transfer limits",
+      "uri": "instavar://creative-guides/carousel-stories",
+      "description": "Carousel story structures and transfer limits",
+      "mimeType": "text/markdown"
+    },
+    {
+      "name": "visual-design",
+      "title": "UI, graphic design and video principles",
+      "uri": "instavar://creative-guides/visual-design",
+      "description": "UI, graphic design and video principles",
+      "mimeType": "text/markdown"
+    },
+    {
+      "name": "human-review",
+      "title": "Human-guided copy, visual and media review",
+      "uri": "instavar://creative-guides/human-review",
+      "description": "Human-guided copy, visual and media review",
+      "mimeType": "text/markdown"
+    }
+  ],
+  "tools": [
+    {
+      "name": "get_creative_guide",
+      "title": "Get a visual communication guide",
+      "description": "Read practical guidance before drafting concise plain or poetic copy, choosing carousel stories, designing visuals or recording human feedback. Returns guidance for the calling assistant to apply, not generated copy or saved feedback. Omit guideId to list guides.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "guideId": {
+            "type": "string",
+            "enum": [
+              "visual-copy",
+              "carousel-stories",
+              "visual-design",
+              "human-review"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      },
+      "_meta": {
+        "securitySchemes": [
+          {
+            "type": "noauth"
+          }
+        ]
+      }
+    },
+    {
+      "name": "get_capabilities",
+      "title": "Get video capabilities",
+      "description": "Call first. Reports free local features and optional account features.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "list_templates",
+      "title": "List Remotion templates",
+      "description": "List public templates, optionally filtered by aspect ratio.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "aspect": {
+            "type": "string",
+            "enum": ["9:16", "4:5", "1:1"]
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "get_template",
+      "title": "Get Remotion template",
+      "description": "Get one public template contract.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "templateId": {
+            "type": "string",
+            "enum": [
+              "qa-ad",
+              "proof-walkthrough",
+              "announcement-brief",
+              "social-remix",
+              "finance-brief"
+            ]
+          }
+        },
+        "required": ["templateId"],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "get_video_schema",
+      "title": "Get VideoSpec schema",
+      "description": "Return the public VideoSpec JSON Schema.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "get_example",
+      "title": "Get VideoSpec example",
+      "description": "Return a starter example for one template.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "templateId": {
+            "type": "string",
+            "enum": [
+              "qa-ad",
+              "proof-walkthrough",
+              "announcement-brief",
+              "social-remix",
+              "finance-brief"
+            ]
+          }
+        },
+        "required": ["templateId"],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "scaffold_video_spec",
+      "title": "Scaffold VideoSpec",
+      "description": "Return a deterministic VideoSpec skeleton without writing files.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "templateId": {
+            "type": "string",
+            "enum": [
+              "qa-ad",
+              "proof-walkthrough",
+              "announcement-brief",
+              "social-remix",
+              "finance-brief"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "aspect": {
+            "type": "string",
+            "enum": ["9:16", "4:5", "1:1"],
+            "default": "9:16"
+          },
+          "mediaSrc": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "required": ["templateId", "title"],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "get_render_instructions",
+      "title": "Get local render instructions",
+      "description": "Return clone, install, validate, preview, and render commands.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "client": {
+            "type": "string",
+            "enum": ["codex", "claude-code", "manual"],
+            "default": "manual"
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "diagnose_render_error",
+      "title": "Diagnose render error",
+      "description": "Classify a local validation or render error.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "errorText": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 10000
+          }
+        },
+        "required": ["errorText"],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    }
+  ],
+  "version": "0.6.0",
+  "category": "tools",
+  "tags": [
+    "mcp",
+    "remotion",
+    "video-templates",
+    "programmatic-video",
+    "creative-guides",
+    "claude-code",
+    "codex",
+    "video-editing"
+  ],
+  "localizations": [
+    {
+      "locale": "en-US",
+      "name": "Instavar Video Templates and Studio",
+      "description": "Free Remotion video templates, creative guides, VideoSpec examples and local render diagnostics for AI agents. No Instavar account or API key is required for the nine public tools. An optional Instavar API key unlocks separate hosted Studio workflows, which may incur costs.",
+      "summary": "Start without an Instavar account or API key. Install @instavar/mcp-server and call get_capabilities. Use get_creative_guide before drafting copy or design; choose a supported structure with list_templates and get_template, then use get_example or scaffold_video_spec. get_render_instructions describes the separate local validate, preview and render workflow. Planning and scaffolding do not render, upload or publish media.\n\nThe default npm 0.6.0 connection exposes ten tools and four creative-guide resources. INSTAVAR_API_KEY is optional, not a setup requirement: configure it only for hosted Studio jobs, rendering, review, publishing and metrics. Hosted production may incur costs and publishing requires explicit user approval.\n\nFor browser-based agents, https://instavar.com/api/mcp/templates is a related but different HTTP service with storyboard and carousel planning plus OAuth private-project review. Its version and tool inventory must not be confused with this npm listing.\n\nInstavar is independent of Remotion AG. Public setup instructions and examples: https://instavar.com/remotion.",
+      "tags": [
+        "mcp",
+        "remotion",
+        "video-templates",
+        "programmatic-video",
+        "creative-guides",
+        "claude-code",
+        "codex",
+        "video-editing"
+      ]
+    }
+  ]
+}

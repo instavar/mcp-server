@@ -255,12 +255,13 @@ export function studioToolMetadata(name: StudioToolName) {
   const readOnly = definition.capability === "read";
   const publish = definition.capability === "publish";
   const externalConnection = definition.capability === "external_connection";
+  const destructive = publish || name === "approve_job";
 
   return {
     title: definition.title,
     annotations: {
       readOnlyHint: readOnly,
-      destructiveHint: publish,
+      destructiveHint: destructive,
       idempotentHint:
         readOnly ||
         definition.capability === "approval" ||

@@ -17,7 +17,7 @@ const fakeServer = {
 registerPublicTemplateTools(fakeServer);
 
 describe("public template tools", () => {
-  it("registers the nine no-key tools", () => {
+  it("registers the ten no-key tools", () => {
     expect(names.sort()).toEqual([
       "diagnose_render_error",
       "get_capabilities",
@@ -27,6 +27,7 @@ describe("public template tools", () => {
       "get_template",
       "get_video_schema",
       "list_templates",
+      "prepare_announcement",
       "scaffold_video_spec",
     ]);
   });

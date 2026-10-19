@@ -1,4 +1,8 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type {
+  McpServer,
+  ReadResourceCallback,
+  ResourceMetadata,
+} from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { CREATIVE_GUIDES } from "./creative-guides.generated";
 
@@ -18,7 +22,16 @@ export const CREATIVE_GUIDE_INDEX = CREATIVE_GUIDES.map(
 );
 
 /** Same public content over HTTP and stdio; no filesystem or network reads. */
-export function registerCreativeGuides(server: McpServer): void {
+export function registerCreativeGuides(
+  server: Pick<McpServer, "registerTool"> & {
+    registerResource(
+      name: string,
+      uri: string,
+      config: ResourceMetadata,
+      callback: ReadResourceCallback
+    ): unknown;
+  }
+): void {
   for (const guide of CREATIVE_GUIDES) {
     server.registerResource(
       guide.id,

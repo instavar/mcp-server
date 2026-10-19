@@ -1,3 +1,5 @@
+import { PAIRED_ANNOUNCEMENT_CAPABILITY } from "./paired-announcement";
+import { registerPairedAnnouncement } from "./paired-announcement";
 import {
   CREATIVE_GUIDE_INDEX,
   registerCreativeGuides,
@@ -313,6 +315,7 @@ export function scaffoldVideoSpec(args: {
 
 export function registerPublicTemplateTools(server: McpServer): void {
   registerCreativeGuides(server);
+  registerPairedAnnouncement(server);
   server.registerTool(
     "get_capabilities",
     {
@@ -330,6 +333,7 @@ export function registerPublicTemplateTools(server: McpServer): void {
           repository: TEMPLATE_REPOSITORY,
           endpoint: TEMPLATE_ENDPOINT,
           creativeGuides: CREATIVE_GUIDE_INDEX,
+          pairedAnnouncement: PAIRED_ANNOUNCEMENT_CAPABILITY,
           localFeatures: [
             "template discovery",
             "VideoSpec schema and examples",

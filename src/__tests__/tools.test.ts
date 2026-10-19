@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { registerTools } from "../tools";
+import {
+  LIKENESS_WARNING_WORDING_VERSION,
+  PERSON_CONSENT_WORDING_VERSION,
+} from "../brief-schema";
 import { z } from "zod";
 
 type Handler = (args: Record<string, unknown>) => Promise<{
@@ -120,11 +124,13 @@ describe("registration", () => {
     }
   });
 
-  it("only publish_job is destructive; it and connect_account are open-world", () => {
+  it("approval and publishing are destructive; publishing and connection are open-world", () => {
     for (const [name, config] of configs) {
       const a = config.annotations!;
       if (a.readOnlyHint) continue;
-      expect(a.destructiveHint, name).toBe(name === "publish_job");
+      expect(a.destructiveHint, name).toBe(
+        name === "publish_job" || name === "approve_job"
+      );
       expect(a.openWorldHint, name).toBe(
         name === "publish_job" || name === "connect_account"
       );
@@ -238,6 +244,7 @@ describe("write tools → correct POST + path", () => {
     expect(f.method).toBe("POST");
     expect(f.headers["x-api-key"]).toBe("ik_live_test");
     expect(String(f.body)).toContain('"title":"T"');
+    expect(f.headers["x-instavar-client"]).toBe("mcp");
   });
 
   it("edit_video_brief → POST /api/v1/jobs/:id/brief (jobId stripped from body)", async () => {
@@ -544,6 +551,72 @@ describe("brief tool schemas preserve caller presence", () => {
     }) as Record<string, unknown>;
     expect(parsed.aspectRatio).toBe("16:9");
     expect(parsed.voiceId).toBe("paul-cheerful");
+  });
+
+  it("create_video_brief accepts a guardian confirmation and rejects unknown kinds", () => {
+    expect(
+      z.object(shapeOf("create_video_brief")).parse({
+        ...MINIMAL_BRIEF,
+        likenessAcknowledgement: {
+          confirmed: true,
+          kind: "guardian",
+          wordingVersion: "2026-10-19.1",
+        },
+      })
+    ).toMatchObject({ likenessAcknowledgement: { kind: "guardian" } });
+    expect(() =>
+      z.object(shapeOf("create_video_brief")).parse({
+        ...MINIMAL_BRIEF,
+        likenessAcknowledgement: {
+          confirmed: true,
+          kind: "reviewer",
+          wordingVersion: "2026-10-19.1",
+        },
+      })
+    ).toThrow();
+  });
+
+  it("create and edit tools accept a likeness acknowledgement", () => {
+    const acknowledgement = {
+      confirmed: true,
+      wordingVersion: LIKENESS_WARNING_WORDING_VERSION,
+    };
+    for (const [tool, base] of [
+      ["create_video_brief", MINIMAL_BRIEF],
+      ["edit_video_brief", { jobId: "0b6ee81a-92c3-4a5c-8b2f-1e15aa1c2d3e" }],
+    ] as const) {
+      expect(
+        z.object(shapeOf(tool)).parse({
+          ...base,
+          likenessAcknowledgement: acknowledgement,
+        })
+      ).toMatchObject({ likenessAcknowledgement: acknowledgement });
+    }
+  });
+
+  it("create and edit tools accept and forward a personConsent declaration", async () => {
+    const consent = {
+      confirmed: true,
+      wordingVersion: PERSON_CONSENT_WORDING_VERSION,
+    };
+    expect(
+      z.object(shapeOf("create_video_brief")).parse({
+        ...MINIMAL_BRIEF,
+        personConsent: consent,
+      })
+    ).toMatchObject({ personConsent: consent });
+    expect(
+      z.object(shapeOf("edit_video_brief")).parse({
+        jobId: "0b6ee81a-92c3-4a5c-8b2f-1e15aa1c2d3e",
+        personConsent: consent,
+      })
+    ).toMatchObject({ personConsent: consent });
+    expect(() =>
+      z.object(shapeOf("create_video_brief")).parse({
+        ...MINIMAL_BRIEF,
+        personConsent: { confirmed: false, wordingVersion: "x" },
+      })
+    ).toThrow();
   });
 
   it("edit_video_brief accepts a voiceId patch", () => {

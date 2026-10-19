@@ -103,6 +103,12 @@ when the key is configured.
 
 ## Tools
 
+From npm 0.6.0 the package also includes `prepare_announcement`: one paired
+announcement card for Remotion and HyperFrames. It returns local source and a
+portable copy document, not a saved hosted project or rendered video. Ask for a
+framework when it is unspecified; continue with the latest returned project and
+matching expectedRevision. Only title, body and action survive a framework switch.
+
 Free local tools:
 
 | Tool                      | What it does                                           |
