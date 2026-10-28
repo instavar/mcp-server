@@ -55,7 +55,11 @@ export function registerCreativeGuides(
       title: "Get a visual communication guide",
       description:
         "Read practical guidance before drafting concise plain or poetic copy, choosing carousel stories, designing visuals or recording human feedback. Returns guidance for the calling assistant to apply, not generated copy or saved feedback. Omit guideId to list guides.",
-      inputSchema: { guideId: creativeGuideIdSchema.optional() },
+      inputSchema: {
+        guideId: creativeGuideIdSchema
+          .optional()
+          .describe("Guide to read. Omit to list the guides."),
+      },
       annotations: {
         readOnlyHint: true,
         destructiveHint: false,

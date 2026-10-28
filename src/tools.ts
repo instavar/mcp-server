@@ -27,6 +27,9 @@ const SAFE_WRITE = {
   openWorldHint: false,
 } as const;
 
+// Every tool takes a strict object, like the remote Studio tools in
+// lib/mcp/remote/register-tools.ts: an unknown argument is rejected with a
+// readable error instead of being silently dropped before the API call.
 export function registerTools(server: McpServer): void {
   // ── Reads ──────────────────────────────────────────────────────────────
 
@@ -36,28 +39,30 @@ export function registerTools(server: McpServer): void {
       title: "List jobs",
       description:
         "List recent video jobs for the current organization (newest first). Start here to discover job IDs; for one job's full detail use get_job_status.",
-      inputSchema: {
-        limit: z
-          .number()
-          .int()
-          .min(1)
-          .max(50)
-          .default(10)
-          .describe("Number of jobs to return (default 10, max 50)"),
-        status: z
-          .enum([
-            "queued",
-            "rendering",
-            "draft_ready",
-            "approved",
-            "publish_requested",
-            "publishing",
-            "published",
-            "failed",
-          ])
-          .optional()
-          .describe("Filter by job status"),
-      },
+      inputSchema: z
+        .object({
+          limit: z
+            .number()
+            .int()
+            .min(1)
+            .max(50)
+            .default(10)
+            .describe("Number of jobs to return (default 10, max 50)"),
+          status: z
+            .enum([
+              "queued",
+              "rendering",
+              "draft_ready",
+              "approved",
+              "publish_requested",
+              "publishing",
+              "published",
+              "failed",
+            ])
+            .optional()
+            .describe("Filter by job status"),
+        })
+        .strict(),
       annotations: READ_ONLY,
     },
     async ({ limit, status }) => {
@@ -73,7 +78,7 @@ export function registerTools(server: McpServer): void {
       title: "Get job status",
       description:
         "Get detailed status for a job: runs, artifacts, verifications, plus the current video and thumbnail URLs. The main polling target after create_video_brief or edit_video_brief; for post-publish engagement numbers use get_job_metrics instead.",
-      inputSchema: { jobId: uuid("The job ID to check") },
+      inputSchema: z.object({ jobId: uuid("The job ID to check") }).strict(),
       annotations: READ_ONLY,
     },
     async ({ jobId }) =>
@@ -86,7 +91,7 @@ export function registerTools(server: McpServer): void {
       title: "Get video state",
       description:
         "Get the materialized video state for a job (composition decisions: scenes, duration, aspect ratio, etc.). Use it to inspect what the video contains; for pipeline progress and video URLs use get_job_status.",
-      inputSchema: { jobId: uuid("The job ID") },
+      inputSchema: z.object({ jobId: uuid("The job ID") }).strict(),
       annotations: READ_ONLY,
     },
     async ({ jobId }) =>
@@ -101,7 +106,7 @@ export function registerTools(server: McpServer): void {
       title: "Diagnose render",
       description:
         "Build one read-only troubleshooting snapshot from the current job status and video state. Reports run failures, artifact binding, duration evidence, retry recommendations, rights checks, and whether blank-frame or placeholder verification evidence exists. It does not visually inspect the video.",
-      inputSchema: { jobId: uuid("The job ID to diagnose") },
+      inputSchema: z.object({ jobId: uuid("The job ID to diagnose") }).strict(),
       annotations: READ_ONLY,
     },
     async ({ jobId }) =>
@@ -121,16 +126,18 @@ export function registerTools(server: McpServer): void {
       title: "Get job metrics",
       description:
         "Get the latest platform engagement metric snapshots for a published job (newest first). Read-only. Only meaningful after publish_job; for render progress use get_job_status.",
-      inputSchema: {
-        jobId: uuid("The job ID"),
-        limit: z
-          .number()
-          .int()
-          .min(1)
-          .max(20)
-          .default(10)
-          .describe("Max metric snapshots (default 10, max 20)"),
-      },
+      inputSchema: z
+        .object({
+          jobId: uuid("The job ID"),
+          limit: z
+            .number()
+            .int()
+            .min(1)
+            .max(20)
+            .default(10)
+            .describe("Max metric snapshots (default 10, max 20)"),
+        })
+        .strict(),
       annotations: READ_ONLY,
     },
     async ({ jobId, limit }) =>
@@ -147,24 +154,26 @@ export function registerTools(server: McpServer): void {
       title: "Get cost summary",
       description:
         "Query production infrastructure costs (Lambda, RunPod, R2, WaveSpeed, PoYo), optionally with reconciliation drift. This is spend data, not engagement — for a published job's audience numbers use get_job_metrics.",
-      inputSchema: {
-        since: z
-          .string()
-          .optional()
-          .describe("ISO date — only include events after this date"),
-        provider: z
-          .enum(["runpod", "lambda", "r2", "wavespeed", "poyo", "all"])
-          .default("all")
-          .describe("Filter by provider"),
-        groupBy: z
-          .enum(["provider", "job", "day"])
-          .default("provider")
-          .describe("How to aggregate the summary"),
-        includeReconciliation: z
-          .boolean()
-          .default(false)
-          .describe("Include account-wide reconciliation events"),
-      },
+      inputSchema: z
+        .object({
+          since: z
+            .string()
+            .optional()
+            .describe("ISO date — only include events after this date"),
+          provider: z
+            .enum(["runpod", "lambda", "r2", "wavespeed", "poyo", "all"])
+            .default("all")
+            .describe("Filter by provider"),
+          groupBy: z
+            .enum(["provider", "job", "day"])
+            .default("provider")
+            .describe("How to aggregate the summary"),
+          includeReconciliation: z
+            .boolean()
+            .default(false)
+            .describe("Include account-wide reconciliation events"),
+        })
+        .strict(),
       annotations: READ_ONLY,
     },
     async ({ since, provider, groupBy, includeReconciliation }) => {
@@ -240,7 +249,10 @@ export function registerTools(server: McpServer): void {
       title: "Create video brief",
       description:
         "Create a new video job from a structured brief and trigger the render pipeline. Returns the job and run IDs immediately; rendering continues asynchronously (typically a few minutes) — poll get_job_status until draft_ready. Requires a key with write scope. To change an existing job, use edit_video_brief instead of creating a duplicate.",
-      inputSchema: createBriefShape,
+      // Strict like the remote Studio tool: an unsupported field such as a
+      // framework choice is rejected instead of being stripped and rendered
+      // with the default renderer.
+      inputSchema: z.object(createBriefShape).strict(),
       annotations: SAFE_WRITE,
     },
     async (input) => runTool(() => apiPost(`/api/v1/jobs`, input))
@@ -252,7 +264,7 @@ export function registerTools(server: McpServer): void {
       title: "Edit video brief",
       description:
         "Edit an existing job's brief (only provided fields change). Changing the script, caption, title, lessonTitle, objective, steps, scenes, aspectRatio or voiceId triggers a re-render and returns the new run ID; objective also re-routes the composition. Changing only publishTarget updates the job's target platform without re-rendering. For a brand-new video use create_video_brief.",
-      inputSchema: editBriefShape,
+      inputSchema: z.object(editBriefShape).strict(),
       annotations: SAFE_WRITE,
     },
     async (input) => {
@@ -413,11 +425,13 @@ export function registerTools(server: McpServer): void {
       title: "Retry video QA",
       description:
         "Retry the default QA evaluator against the same current frozen video. Use only when get_job_status recommends retryTarget qa_only, or when QA is missing, unavailable, or parse-degraded. This does not regenerate media and cannot clear publish gates by itself.",
-      inputSchema: {
-        jobId: uuid("The current job ID"),
-        runId: uuid("The current render run ID"),
-        videoArtifactId: uuid("The current frozen video artifact ID"),
-      },
+      inputSchema: z
+        .object({
+          jobId: uuid("The current job ID"),
+          runId: uuid("The current render run ID"),
+          videoArtifactId: uuid("The current frozen video artifact ID"),
+        })
+        .strict(),
       annotations: SAFE_WRITE,
     },
     async ({ jobId, runId, videoArtifactId }) =>
@@ -435,11 +449,13 @@ export function registerTools(server: McpServer): void {
       title: "Audit video QA",
       description:
         "Run Qwen3.6-Plus as an advisory second evaluator against the same current frozen video. Use only on an explicit request for another model, second opinion, or evaluator escalation. The result is separate from default QA and has no publish-gate effect.",
-      inputSchema: {
-        jobId: uuid("The current job ID"),
-        runId: uuid("The current render run ID"),
-        videoArtifactId: uuid("The current frozen video artifact ID"),
-      },
+      inputSchema: z
+        .object({
+          jobId: uuid("The current job ID"),
+          runId: uuid("The current render run ID"),
+          videoArtifactId: uuid("The current frozen video artifact ID"),
+        })
+        .strict(),
       annotations: SAFE_WRITE,
     },
     async ({ jobId, runId, videoArtifactId }) =>
@@ -457,11 +473,13 @@ export function registerTools(server: McpServer): void {
       title: "Regenerate narration",
       description:
         "Regenerate narration from the unchanged durable brief and then regenerate its dependent video in a paid adaptation run. Use only on an explicit user request or when get_job_status recommends retryTarget tts. This is an audio_and_video cascade, consumes rerender quota, and requires fresh QA.",
-      inputSchema: {
-        jobId: uuid("The current job ID"),
-        sourceRunId: uuid("The current run ID"),
-        trigger: z.enum(["user_requested", "verifier_recommendation"]),
-      },
+      inputSchema: z
+        .object({
+          jobId: uuid("The current job ID"),
+          sourceRunId: uuid("The current run ID"),
+          trigger: z.enum(["user_requested", "verifier_recommendation"]),
+        })
+        .strict(),
       annotations: SAFE_WRITE,
     },
     async ({ jobId, sourceRunId, trigger }) =>
@@ -479,7 +497,7 @@ export function registerTools(server: McpServer): void {
       title: "Approve job",
       description:
         "Approve a rendered job so it becomes publishable (draft_ready/awaiting_review/needs_changes -> approved) and revoke active review links. Required before publish_job will accept the job.",
-      inputSchema: { jobId: uuid("The job ID to approve") },
+      inputSchema: z.object({ jobId: uuid("The job ID to approve") }).strict(),
       annotations: {
         readOnlyHint: false,
         // Approval revokes active review links, so this is not purely additive.
@@ -501,66 +519,70 @@ export function registerTools(server: McpServer): void {
       title: "Publish job",
       description:
         "Publish an APPROVED job to its connected social destination via the gated publish API. All production gates run (paid plan, ownership, abuse, QA, disclosure, destination, rights, moderation). Requires a key with publish scope; the post goes live on the external platform and cannot be recalled by the API. For YouTube pass youtubePrivacyStatus:'private' for safe runs.",
-      inputSchema: {
-        jobId: uuid("The approved job to publish"),
-        xPreviewArtifactId: z
-          .string()
-          .min(1)
-          .optional()
-          .describe("X only. Exact reviewed video artifact ID."),
-        xCaption: z
-          .string()
-          .trim()
-          .min(1)
-          .max(2_000)
-          .optional()
-          .describe("X only. Exact post text approved by the user."),
-        xMadeWithAi: z
-          .boolean()
-          .optional()
-          .describe("X only. Enable the Made with AI disclosure."),
-        confirmXPublicPost: z
-          .boolean()
-          .optional()
-          .describe("True only after the user authorizes this public X post."),
-        confirmXAutomationPolicy: z
-          .boolean()
-          .optional()
-          .describe(
-            "True only after the user confirms the X automation policy."
-          ),
-        confirmXOriginalContent: z
-          .boolean()
-          .optional()
-          .describe(
-            "True only after the user confirms ownership or publishing rights."
-          ),
-        youtubePrivacyStatus: z
-          .enum(["private", "unlisted", "public"])
-          .optional()
-          .describe("YouTube only. Use 'private' for safe dogfood runs."),
-        tiktokPostMode: z
-          .enum(["direct_publish", "draft_upload"])
-          .optional()
-          .describe("TikTok only. Use 'draft_upload' for safe dogfood runs."),
-        connectedAccountDestinationId: z
-          .string()
-          .uuid()
-          .optional()
-          .describe(
-            "Specific destination when the org has multiple accounts for the provider."
-          ),
-        confirmSyntheticDisclosure: z
-          .boolean()
-          .optional()
-          .describe(
-            "Set true when the job requires an AI synthetic-media disclosure."
-          ),
-        confirmQaOverride: z
-          .boolean()
-          .optional()
-          .describe("Set true to override a non-passing QA gate."),
-      },
+      inputSchema: z
+        .object({
+          jobId: uuid("The approved job to publish"),
+          xPreviewArtifactId: z
+            .string()
+            .min(1)
+            .optional()
+            .describe("X only. Exact reviewed video artifact ID."),
+          xCaption: z
+            .string()
+            .trim()
+            .min(1)
+            .max(2_000)
+            .optional()
+            .describe("X only. Exact post text approved by the user."),
+          xMadeWithAi: z
+            .boolean()
+            .optional()
+            .describe("X only. Enable the Made with AI disclosure."),
+          confirmXPublicPost: z
+            .boolean()
+            .optional()
+            .describe(
+              "True only after the user authorizes this public X post."
+            ),
+          confirmXAutomationPolicy: z
+            .boolean()
+            .optional()
+            .describe(
+              "True only after the user confirms the X automation policy."
+            ),
+          confirmXOriginalContent: z
+            .boolean()
+            .optional()
+            .describe(
+              "True only after the user confirms ownership or publishing rights."
+            ),
+          youtubePrivacyStatus: z
+            .enum(["private", "unlisted", "public"])
+            .optional()
+            .describe("YouTube only. Use 'private' for safe dogfood runs."),
+          tiktokPostMode: z
+            .enum(["direct_publish", "draft_upload"])
+            .optional()
+            .describe("TikTok only. Use 'draft_upload' for safe dogfood runs."),
+          connectedAccountDestinationId: z
+            .string()
+            .uuid()
+            .optional()
+            .describe(
+              "Specific destination when the org has multiple accounts for the provider."
+            ),
+          confirmSyntheticDisclosure: z
+            .boolean()
+            .optional()
+            .describe(
+              "Set true when the job requires an AI synthetic-media disclosure."
+            ),
+          confirmQaOverride: z
+            .boolean()
+            .optional()
+            .describe("Set true to override a non-passing QA gate."),
+        })
+        .strict(),
       annotations: {
         readOnlyHint: false,
         // A live post on an external platform cannot be recalled by the API.
@@ -584,19 +606,21 @@ export function registerTools(server: McpServer): void {
       title: "Connect social account",
       description:
         "Start connecting a social account headlessly (no local browser needed). Returns an approve URL + a short confirm code: open the URL in a browser signed in to Instavar, check the code matches THIS terminal, and approve. Then poll connect_account_status with the returned pairingId until it reports 'connected'.",
-      inputSchema: {
-        provider: z
-          .enum([
-            "youtube",
-            "x",
-            "tiktok",
-            "linkedin",
-            "facebook",
-            "instagram",
-            "threads",
-          ])
-          .describe("The social platform to connect"),
-      },
+      inputSchema: z
+        .object({
+          provider: z
+            .enum([
+              "youtube",
+              "x",
+              "tiktok",
+              "linkedin",
+              "facebook",
+              "instagram",
+              "threads",
+            ])
+            .describe("The social platform to connect"),
+        })
+        .strict(),
       annotations: {
         readOnlyHint: false,
         destructiveHint: false,
@@ -615,9 +639,11 @@ export function registerTools(server: McpServer): void {
       title: "Check account connection",
       description:
         "Poll a pending account connection started by connect_account. Returns status 'pending' | 'connected' | 'expired', plus the connected account label once connected.",
-      inputSchema: {
-        pairingId: uuid("The pairingId returned by connect_account"),
-      },
+      inputSchema: z
+        .object({
+          pairingId: uuid("The pairingId returned by connect_account"),
+        })
+        .strict(),
       annotations: READ_ONLY,
     },
     async ({ pairingId }) =>

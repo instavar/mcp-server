@@ -1,4 +1,8 @@
-import { PAIRED_ANNOUNCEMENT_INSTRUCTIONS } from "./paired-announcement";
+import { pairedAnnouncementInstructions } from "./paired-announcement";
+import {
+  PAIRED_TEMPLATE_INSTRUCTIONS,
+  pairedTemplatesEnabled,
+} from "./paired-templates/prepare-video-template";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { registerConfiguredTools } from "./configured-tools";
@@ -39,9 +43,10 @@ async function main(): Promise<void> {
     { name: "instavar", version: VERSION },
     {
       instructions:
-        PAIRED_ANNOUNCEMENT_INSTRUCTIONS +
+        pairedAnnouncementInstructions(pairedTemplatesEnabled()) +
+        (pairedTemplatesEnabled() ? " " + PAIRED_TEMPLATE_INSTRUCTIONS : "") +
         " " +
-        "Before drafting concise carousel or video copy, call get_creative_guide for visual-copy. Use the carousel-stories, visual-design and human-review guides as relevant. Apply them to the user brief; the guides do not generate, render, save or publish media.",
+        "Before drafting concise carousel or video copy, call get_creative_guide for visual-copy. Use the carousel-stories, visual-design and human-review guides as relevant. Apply them to the user brief; the guides do not generate, render, save or publish media. For an ordinary video request, call propose_video_storyboard with the user's words and an aspect, passing accepted title, body and CTA as separate fields, and show the three beats before scaffolding. The storyboard contains visual briefs, not generated images. Use scaffold_video_spec only after the user accepts or refines the direction, preserving supplied body and CTA. For a carousel, choose a structure with list_carousel_templates and build it with scaffold_carousel_deck from accepted copy.",
     }
   );
   registerConfiguredTools(server);

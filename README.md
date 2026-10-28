@@ -19,20 +19,24 @@ install a second server.
 
 ## Start with the right capability
 
-Use Instavar when an agent needs reusable Remotion video templates, creative
-guidance, a VideoSpec example, or help with a local render error. Call
-`get_capabilities` first, then `get_creative_guide` before drafting copy or design.
+Use Instavar when an agent needs reusable video templates for Remotion or
+HyperFrames, creative guidance, a VideoSpec example, an editorial carousel, or
+help with a local render error. Call `get_capabilities` first, then
+`get_creative_guide` before drafting copy or design. For an ordinary video
+request, `propose_video_storyboard` suggests three visual beats and a template.
 Use `list_templates` and `get_template` to choose a supported structure, and
 `get_example` or `scaffold_video_spec` to prepare its specification.
-`get_render_instructions` supplies the separate local validation, preview and
-render workflow. Planning and scaffolding do not render, upload or publish media.
+`prepare_video_template` turns that specification into local Remotion or
+HyperFrames source. `get_render_instructions` supplies the separate local
+validation, preview and render workflow. Planning and scaffolding do not
+render, upload or publish media.
 
 Prefer a hosted HTTP connection for browser-based agents? Use
 `https://instavar.com/api/mcp/templates`, also listed as
 [Instavar Video Templates on Smithery](https://smithery.ai/servers/cheeweijie/instavar-video-templates).
-That related endpoint adds storyboard and editorial-carousel planning. Its
-optional OAuth tools list and review private projects only. It is not identical
-to this npm package or the full protected Studio endpoint. Public planning does
+It offers the same account-free template, storyboard and carousel tools, plus a
+ChatGPT planner widget. Its optional OAuth tools list and review private
+projects only. It is not the full protected Studio endpoint. Public planning does
 not require an Instavar account; a directory or gateway may require its own login.
 
 Hosted Studio production is optional and may incur costs. Never treat a request
@@ -96,10 +100,11 @@ when the key is configured.
 
 ### Environment
 
-| Var                 | Required | Default                | Purpose                                                     |
-| ------------------- | -------- | ---------------------- | ----------------------------------------------------------- |
-| `INSTAVAR_API_KEY`  | no       | —                      | Unlocks hosted Studio tools. Scoped to your org; revocable. |
-| `INSTAVAR_BASE_URL` | no       | `https://instavar.com` | Override the API host.                                      |
+| Var                         | Required | Default                | Purpose                                                                                 |
+| --------------------------- | -------- | ---------------------- | --------------------------------------------------------------------------------------- |
+| `INSTAVAR_API_KEY`          | no       | —                      | Unlocks hosted Studio tools. Scoped to your org; revocable.                             |
+| `INSTAVAR_BASE_URL`         | no       | `https://instavar.com` | Override the API host.                                                                  |
+| `INSTAVAR_PAIRED_TEMPLATES` | no       | on                     | Set to `0` to hide `prepare_video_template` and keep the VideoSpec tools Remotion-only. |
 
 ## Tools
 
@@ -109,19 +114,33 @@ portable copy document, not a saved hosted project or rendered video. Ask for a
 framework when it is unspecified; continue with the latest returned project and
 matching expectedRevision. Only title, body and action survive a framework switch.
 
+From npm 0.7.0, `prepare_video_template` realises one VideoSpec for any of the
+five template families in Remotion (the public renderer, pinned) or HyperFrames
+(generated source). Both frameworks accept the same fields; a field neither
+renderer honours is rejected rather than dropped. 0.7.0 also adds the
+storyboard and carousel tools the hosted endpoint already had, from the same
+code, and the hosted tools below now reject unknown input keys instead of
+dropping them.
+
 Free local tools:
 
-| Tool                      | What it does                                           |
-| ------------------------- | ------------------------------------------------------ |
-| `get_capabilities`        | Reports free and optional account features.            |
-| `get_creative_guide`      | Reads concise copy, story, design and review guidance. |
-| `list_templates`          | Lists published Remotion template families.            |
-| `get_template`            | Returns one template contract.                         |
-| `get_video_schema`        | Returns the public VideoSpec JSON Schema.              |
-| `get_example`             | Returns a starter VideoSpec.                           |
-| `scaffold_video_spec`     | Creates a deterministic VideoSpec skeleton.            |
-| `get_render_instructions` | Returns the local validation and render workflow.      |
-| `diagnose_render_error`   | Classifies common local render failures.               |
+| Tool                       | What it does                                           |
+| -------------------------- | ------------------------------------------------------ |
+| `get_capabilities`         | Reports free and optional account features.            |
+| `get_creative_guide`       | Reads concise copy, story, design and review guidance. |
+| `propose_video_storyboard` | Proposes three visual beats and a template.            |
+| `list_templates`           | Lists published template families.                     |
+| `get_template`             | Returns one template contract.                         |
+| `get_video_schema`         | Returns the public VideoSpec JSON Schema.              |
+| `get_example`              | Returns a starter VideoSpec.                           |
+| `scaffold_video_spec`      | Creates a deterministic VideoSpec skeleton.            |
+| `prepare_video_template`   | Realises a VideoSpec in Remotion or HyperFrames.       |
+| `prepare_announcement`     | Prepares one paired announcement card.                 |
+| `list_carousel_templates`  | Lists the editorial carousel story structures.         |
+| `get_carousel_schema`      | Returns the CarouselDeck JSON Schema.                  |
+| `scaffold_carousel_deck`   | Builds a deterministic carousel deck from copy.        |
+| `get_render_instructions`  | Returns the local validation and render workflow.      |
+| `diagnose_render_error`    | Classifies common local render failures.               |
 
 Hosted tools, available when `INSTAVAR_API_KEY` is configured:
 

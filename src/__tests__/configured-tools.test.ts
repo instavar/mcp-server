@@ -16,15 +16,18 @@ function registeredNames(apiKey?: string): string[] {
 }
 
 describe("configured MCP surface", () => {
-  it("exposes only the ten local tools without a key", () => {
-    expect(registeredNames()).toHaveLength(10);
+  it("exposes only the fifteen local tools without a key", () => {
+    expect(registeredNames()).toHaveLength(15);
     expect(registeredNames()).toContain("scaffold_video_spec");
+    expect(registeredNames()).toContain("propose_video_storyboard");
+    expect(registeredNames()).toContain("scaffold_carousel_deck");
+    expect(registeredNames()).toContain("prepare_video_template");
     expect(registeredNames()).not.toContain("publish_job");
   });
 
   it("adds the hosted tools when a key is configured", () => {
     const names = registeredNames("ik_live_test");
-    expect(names).toHaveLength(34);
+    expect(names).toHaveLength(39);
     expect(names).toContain("scaffold_video_spec");
     expect(names).toContain("create_video_brief");
     expect(names).toContain("diagnose_render");

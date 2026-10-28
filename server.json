@@ -1,19 +1,32 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "com.instavar/mcp-server",
-  "description": "Free Remotion video templates and creative guides; optional hosted Studio rendering and publishing.",
+  "description": "Free Remotion and HyperFrames templates and creative guides; optional hosted Studio workflows.",
   "status": "active",
   "repository": {
     "url": "https://github.com/instavar/mcp-server",
     "source": "github"
   },
-  "version": "0.6.0",
+  "version": "0.7.0",
   "websiteUrl": "https://instavar.com/remotion",
+  "icons": [
+    {
+      "src": "https://instavar.com/logo/logo_accent_1024x1024.png",
+      "mimeType": "image/png",
+      "sizes": ["1024x1024"]
+    }
+  ],
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://instavar.com/api/mcp/templates"
+    }
+  ],
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@instavar/mcp-server",
-      "version": "0.6.0",
+      "version": "0.7.0",
       "transport": {
         "type": "stdio"
       },
@@ -61,7 +74,7 @@
         "authentication": "No account or API key for template tools and creative guides. INSTAVAR_API_KEY unlocks separate hosted Studio workflows.",
         "boundaries": "Planning and scaffolding do not render, upload or publish media. Hosted production can incur costs. Publishing requires explicit user approval. Independent of Remotion AG.",
         "remotePlanningEndpoint": "https://instavar.com/api/mcp/templates",
-        "remotePlanningNote": "Related HTTP product surface, not identical to the npm tool inventory: anonymous video/carousel planning and optional OAuth private project review.",
+        "remotePlanningNote": "Hosted remote listed under remotes. From 0.7.0 it serves the same free template, storyboard, carousel and paired Remotion or HyperFrames tools as the npm package, plus a ChatGPT planner widget and optional OAuth private project review. Hosted Studio tools stay on the npm package with INSTAVAR_API_KEY or on the protected Studio endpoint.",
         "protectedStudioEndpoint": "https://instavar.com/api/mcp/mcp",
         "protectedStudioNote": "Separate hosted Studio surface; OAuth authentication required."
       }

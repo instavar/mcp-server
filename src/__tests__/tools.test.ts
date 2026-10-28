@@ -529,8 +529,14 @@ describe("brief tool schemas preserve caller presence", () => {
     publishTarget: "youtube",
     objective: "launch_update",
   };
-  const shapeOf = (tool: string) =>
-    configs.get(tool)!.inputSchema as Record<string, z.ZodTypeAny>;
+  // Every tool registers a strict object; these checks re-parse its shape.
+  const shapeOf = (tool: string) => {
+    const schema = configs.get(tool)!.inputSchema;
+    return (schema instanceof z.ZodObject ? schema.shape : schema) as Record<
+      string,
+      z.ZodTypeAny
+    >;
+  };
 
   it("create_video_brief does NOT materialize an aspectRatio default", () => {
     // A zod .default() would inject aspectRatio into the parsed args and the

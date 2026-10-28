@@ -17,17 +17,22 @@ const fakeServer = {
 registerPublicTemplateTools(fakeServer);
 
 describe("public template tools", () => {
-  it("registers the ten no-key tools", () => {
+  it("registers the fifteen no-key tools", () => {
     expect(names.sort()).toEqual([
       "diagnose_render_error",
       "get_capabilities",
+      "get_carousel_schema",
       "get_creative_guide",
       "get_example",
       "get_render_instructions",
       "get_template",
       "get_video_schema",
+      "list_carousel_templates",
       "list_templates",
       "prepare_announcement",
+      "prepare_video_template",
+      "propose_video_storyboard",
+      "scaffold_carousel_deck",
       "scaffold_video_spec",
     ]);
   });

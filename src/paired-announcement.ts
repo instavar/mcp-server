@@ -145,8 +145,21 @@ export function prepareAnnouncement(raw: unknown): Record<string, unknown> {
   };
 }
 
+/** With the paired catalogue on, the last sentence would be false. */
+export function pairedAnnouncementInstructions(
+  pairedCatalogue = false
+): string {
+  return pairedCatalogue
+    ? PAIRED_ANNOUNCEMENT_INSTRUCTIONS.replace(
+        "The existing VideoSpec catalogue remains Remotion-only.",
+        "VideoSpec templates use prepare_video_template in either framework."
+      )
+    : PAIRED_ANNOUNCEMENT_INSTRUCTIONS;
+}
+
 export function registerPairedAnnouncement(
-  server: Pick<McpServer, "registerTool">
+  server: Pick<McpServer, "registerTool">,
+  options: { pairedCatalogue?: boolean } = {}
 ): void {
   server.registerTool(
     "prepare_announcement",
@@ -154,7 +167,7 @@ export function registerPairedAnnouncement(
       title: "Prepare an announcement in Remotion or HyperFrames",
       description:
         "Prepare one paired announcement-card-v1 template, continue its caller-held project, edit copy or switch frameworks. Returns source files for local rendering. " +
-        PAIRED_ANNOUNCEMENT_INSTRUCTIONS,
+        pairedAnnouncementInstructions(options.pairedCatalogue),
       inputSchema: pairedAnnouncementInput,
       annotations: {
         readOnlyHint: true,

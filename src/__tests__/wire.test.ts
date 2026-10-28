@@ -270,3 +270,38 @@ describe("standalone MCP wire contract", () => {
     }
   });
 });
+
+describe("standalone create_video_brief admission", () => {
+  it("rejects a framework choice instead of rendering with the default", async () => {
+    const { client, server } = await connectPair();
+    try {
+      const brief = {
+        title: "Framework probe",
+        script: "Hello there.",
+        caption: "Probe",
+        publishTarget: "linkedin",
+        objective: "other",
+      };
+      for (const extra of [
+        { framework: "hyperframes" },
+        { experimentalRenderer: "hyperframes" },
+      ]) {
+        const result = await client.callTool({
+          name: "create_video_brief",
+          arguments: { ...brief, ...extra },
+        });
+        expect(result.isError).toBe(true);
+      }
+      expect(fetchMock).not.toHaveBeenCalled();
+      const accepted = await client.callTool({
+        name: "create_video_brief",
+        arguments: brief,
+      });
+      expect(accepted.isError).not.toBe(true);
+      expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual(brief);
+    } finally {
+      await client.close();
+      await server.close();
+    }
+  });
+});
