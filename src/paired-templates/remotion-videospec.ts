@@ -7,7 +7,7 @@ import type { PairedTimeline, PairedVideoSpec } from "./videospec-contract";
  */
 export const REMOTION_TEMPLATES = {
   repository: "https://github.com/instavar/remotion-templates",
-  commit: "a9092254937d28a05a277a9b6ecfd4ebea864245",
+  commit: "d50166d84a75bdc0585897dc78316d6c6f6588ff",
   remotion: "4.0.502",
 } as const;
 

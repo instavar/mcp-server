@@ -518,52 +518,17 @@ export function registerTools(server: McpServer): void {
     {
       title: "Publish job",
       description:
-        "Publish an APPROVED job to its connected social destination via the gated publish API. All production gates run (paid plan, ownership, abuse, QA, disclosure, destination, rights, moderation). Requires a key with publish scope; the post goes live on the external platform and cannot be recalled by the API. For YouTube pass youtubePrivacyStatus:'private' for safe runs.",
+        "Publish an APPROVED job to one connected social account. The user must approve each post in Instavar Studio: the first call returns a link and code that show them the exact account, text, video and visibility. Show the link to the user, wait for them to approve, then call again with the returned confirmationId. Nothing is posted until the user approves, and only the user can approve. All production gates still run; the post goes live and cannot be recalled by the API. LinkedIn, X, YouTube, Facebook, Instagram and Threads; TikTok posts are made in Instavar Studio. Requires a key with publish scope.",
       inputSchema: z
         .object({
           jobId: uuid("The approved job to publish"),
-          xPreviewArtifactId: z
+          confirmationId: z
             .string()
-            .min(1)
-            .optional()
-            .describe("X only. Exact reviewed video artifact ID."),
-          xCaption: z
-            .string()
-            .trim()
-            .min(1)
-            .max(2_000)
-            .optional()
-            .describe("X only. Exact post text approved by the user."),
-          xMadeWithAi: z
-            .boolean()
-            .optional()
-            .describe("X only. Enable the Made with AI disclosure."),
-          confirmXPublicPost: z
-            .boolean()
+            .uuid()
             .optional()
             .describe(
-              "True only after the user authorizes this public X post."
+              "The confirmationId from an earlier publish_job reply, after the user approved in Instavar Studio."
             ),
-          confirmXAutomationPolicy: z
-            .boolean()
-            .optional()
-            .describe(
-              "True only after the user confirms the X automation policy."
-            ),
-          confirmXOriginalContent: z
-            .boolean()
-            .optional()
-            .describe(
-              "True only after the user confirms ownership or publishing rights."
-            ),
-          youtubePrivacyStatus: z
-            .enum(["private", "unlisted", "public"])
-            .optional()
-            .describe("YouTube only. Use 'private' for safe dogfood runs."),
-          tiktokPostMode: z
-            .enum(["direct_publish", "draft_upload"])
-            .optional()
-            .describe("TikTok only. Use 'draft_upload' for safe dogfood runs."),
           connectedAccountDestinationId: z
             .string()
             .uuid()
@@ -571,16 +536,23 @@ export function registerTools(server: McpServer): void {
             .describe(
               "Specific destination when the org has multiple accounts for the provider."
             ),
-          confirmSyntheticDisclosure: z
+          xCaption: z
+            .string()
+            .trim()
+            .min(1)
+            .max(2_000)
+            .optional()
+            .describe("X only. The post text to show the user for approval."),
+          xMadeWithAi: z
             .boolean()
+            .optional()
+            .describe("X only. Turn on the Made with AI label."),
+          youtubePrivacyStatus: z
+            .enum(["private", "unlisted", "public"])
             .optional()
             .describe(
-              "Set true when the job requires an AI synthetic-media disclosure."
+              "YouTube only. Must match the channel's saved privacy setting; use 'private' for safe dogfood runs."
             ),
-          confirmQaOverride: z
-            .boolean()
-            .optional()
-            .describe("Set true to override a non-passing QA gate."),
         })
         .strict(),
       annotations: {
@@ -591,11 +563,82 @@ export function registerTools(server: McpServer): void {
         openWorldHint: true,
       },
     },
-    async ({ jobId, ...rest }) =>
-      // NOTE: publish is NOT under /api/v1 — it is the gated /api/jobs route.
-      runTool(() =>
-        apiPost(`/api/jobs/${encodeURIComponent(jobId)}/publish`, rest)
-      )
+    async ({ jobId, confirmationId, youtubePrivacyStatus, ...target }) =>
+      // This package runs on the user's machine, so it never records an
+      // approval itself: the user approves on the signed-in Studio page and
+      // the publish route consumes that server-side confirmation.
+      runTool(async () => {
+        const loaded = confirmationId
+          ? await apiGet(
+              `/api/v1/publish-confirmations/${encodeURIComponent(
+                confirmationId
+              )}`
+            )
+          : await apiPost(
+              `/api/v1/jobs/${encodeURIComponent(jobId)}/publish-confirmations`,
+              target
+            );
+        const view = loaded.body as {
+          confirmationId?: string;
+          status?: string;
+          approveUrl?: string;
+          userCode?: string;
+          expiresAt?: string;
+          content?: {
+            jobId: string;
+            platform: string;
+            platformName: string;
+            accountName: string;
+            destinationId: string;
+            videoArtifactId: string;
+          } | null;
+        };
+        if (!loaded.ok || !view?.confirmationId || !view.content) return loaded;
+        if (view.content.jobId !== jobId) {
+          return {
+            ok: false,
+            status: 409,
+            body: {
+              posted: false,
+              error:
+                "That confirmation is for a different video. Call publish_job again without confirmationId.",
+            },
+          };
+        }
+        if (view.status === "approved") {
+          // NOTE: publish is NOT under /api/v1; it is the gated /api/jobs route.
+          return apiPost(`/api/jobs/${encodeURIComponent(jobId)}/publish`, {
+            publishConfirmationId: view.confirmationId,
+            provider: view.content.platform,
+            connectedAccountDestinationId: view.content.destinationId,
+            expectedVideoArtifactId: view.content.videoArtifactId,
+            youtubePrivacyStatus:
+              view.content.platform === "youtube"
+                ? youtubePrivacyStatus
+                : undefined,
+          });
+        }
+        const message =
+          view.status === "pending"
+            ? `Nothing was posted yet. Ask the user to open ${view.approveUrl} in a browser signed in to Instavar, check the code ${view.userCode} matches, and approve the post to ${view.content.platformName} account ${view.content.accountName}. Then call publish_job again with confirmationId ${view.confirmationId}. Only the user can approve; do not approve on their behalf. The request expires at ${view.expiresAt}.`
+            : view.status === "used"
+            ? "Nothing new was posted: this approval was already used for one post."
+            : view.status === "expired"
+            ? "Nothing was posted: the approval request expired. Call publish_job again without confirmationId."
+            : "Nothing was posted: the user declined this post.";
+        return {
+          ok: true,
+          status: 200,
+          body: {
+            posted: false,
+            status: view.status,
+            confirmationId: view.confirmationId,
+            approveUrl: view.approveUrl,
+            userCode: view.userCode,
+            message,
+          },
+        };
+      })
   );
 
   // ── Account connection (headless OAuth device-pairing) ───────────────────

@@ -164,6 +164,7 @@ export function registerPairedTemplates(
         PAIRED_TEMPLATE_INSTRUCTIONS,
       inputSchema: prepareVideoTemplateInput,
       annotations: {
+        title: "Prepare video template",
         readOnlyHint: true,
         destructiveHint: false,
         openWorldHint: false,

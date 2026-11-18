@@ -188,6 +188,25 @@ function result(
   };
 }
 
+/**
+ * Adds a result's structuredContent to its text content as JSON, after the
+ * summary, for clients that pass only text content to the model. The MCP
+ * specification recommends this for structured results. Errors and results
+ * without structuredContent are returned unchanged.
+ */
+export function withStructuredContentText(
+  value: CallToolResult
+): CallToolResult {
+  if (value.isError || value.structuredContent === undefined) return value;
+  return {
+    ...value,
+    content: [
+      ...value.content,
+      { type: "text", text: JSON.stringify(value.structuredContent) },
+    ],
+  };
+}
+
 function slugify(value: string): string {
   const slug = value
     .toLowerCase()
@@ -734,14 +753,19 @@ export function runGetExampleTool(
   );
 }
 
-export function runGetRenderInstructionsTool(args: {
-  client: "codex" | "claude-code" | "manual";
-}): CallToolResult {
+export function runGetRenderInstructionsTool(
+  args: {
+    client: "codex" | "claude-code" | "manual";
+  },
+  options: { voiceStudio?: boolean } = {}
+): CallToolResult {
   const commands = [
     `git clone ${TEMPLATE_REPOSITORY}.git`,
     "cd remotion-templates",
     "npm install",
-    `# Generate narration at ${VOICE_STUDIO_URL}, with one paragraph per scene`,
+    options.voiceStudio === false
+      ? "# Optional: save your own narration recording as public/generated/narration.wav, with one paragraph per scene"
+      : `# Generate narration at ${VOICE_STUDIO_URL}, with one paragraph per scene`,
     "npm run video:timing -- path/to/video.video.json --audio public/generated/narration.wav --manifest path/to/narration.timing.json",
     "npm run video:validate -- path/to/video.video.json",
     "npm run video:preview -- path/to/video.video.json",
@@ -828,6 +852,10 @@ export type SharedTemplateToolName =
 /**
  * Registers the shared account-free tools. `toolMeta` lets the hosted route
  * attach its ChatGPT widget metadata; it never changes inputs or outputs.
+ * `voiceStudio: false` drops the Instavar Voice narration pointer from the
+ * render instructions, for listings that exclude speech generation.
+ * `jsonTextTools` names the tools whose text content also carries their
+ * structuredContent as JSON; tool definitions stay the same.
  */
 export function registerSharedTemplateTools(
   server: Pick<McpServer, "registerTool">,
@@ -835,11 +863,15 @@ export function registerSharedTemplateTools(
     pairedTemplates: boolean;
     toolMeta?: (name: SharedTemplateToolName) => Record<string, unknown>;
     acceptedPreview?: AcceptedPreviewBuilder;
+    voiceStudio?: boolean;
+    jsonTextTools?: ReadonlySet<SharedTemplateToolName>;
   }
 ): void {
   const paired = options.pairedTemplates;
   const meta = (name: SharedTemplateToolName) =>
     options.toolMeta ? { _meta: options.toolMeta(name) } : {};
+  const send = (name: SharedTemplateToolName, value: CallToolResult) =>
+    options.jsonTextTools?.has(name) ? withStructuredContentText(value) : value;
   const catalogue = paired ? "video" : "Remotion";
 
   server.registerTool(
@@ -854,7 +886,7 @@ export function registerSharedTemplateTools(
       },
       ...meta("list_carousel_templates"),
     },
-    async () => runListCarouselTemplatesTool()
+    async () => send("list_carousel_templates", runListCarouselTemplatesTool())
   );
 
   server.registerTool(
@@ -867,7 +899,7 @@ export function registerSharedTemplateTools(
       annotations: { title: "Get carousel schema", ...READ_ONLY_ANNOTATIONS },
       ...meta("get_carousel_schema"),
     },
-    async () => runGetCarouselSchemaTool()
+    async () => send("get_carousel_schema", runGetCarouselSchemaTool())
   );
 
   server.registerTool(
@@ -926,7 +958,8 @@ export function registerSharedTemplateTools(
       },
       ...meta("scaffold_carousel_deck"),
     },
-    async (args) => runScaffoldCarouselDeckTool(args)
+    async (args) =>
+      send("scaffold_carousel_deck", runScaffoldCarouselDeckTool(args))
   );
 
   server.registerTool(
@@ -946,7 +979,7 @@ export function registerSharedTemplateTools(
       annotations: { title: "List templates", ...READ_ONLY_ANNOTATIONS },
       ...meta("list_templates"),
     },
-    async (args) => runListTemplatesTool(args, paired)
+    async (args) => send("list_templates", runListTemplatesTool(args, paired))
   );
 
   server.registerTool(
@@ -963,7 +996,7 @@ export function registerSharedTemplateTools(
       annotations: { title: "Get template", ...READ_ONLY_ANNOTATIONS },
       ...meta("get_template"),
     },
-    async (args) => runGetTemplateTool(args, paired)
+    async (args) => send("get_template", runGetTemplateTool(args, paired))
   );
 
   server.registerTool(
@@ -976,7 +1009,7 @@ export function registerSharedTemplateTools(
       annotations: { title: "Get video schema", ...READ_ONLY_ANNOTATIONS },
       ...meta("get_video_schema"),
     },
-    async () => runGetVideoSchemaTool()
+    async () => send("get_video_schema", runGetVideoSchemaTool())
   );
 
   server.registerTool(
@@ -992,7 +1025,7 @@ export function registerSharedTemplateTools(
       annotations: { title: "Get example", ...READ_ONLY_ANNOTATIONS },
       ...meta("get_example"),
     },
-    async (args) => runGetExampleTool(args, paired)
+    async (args) => send("get_example", runGetExampleTool(args, paired))
   );
 
   server.registerTool(
@@ -1033,7 +1066,7 @@ export function registerSharedTemplateTools(
         acceptedDesign: acceptedDesignSchema
           .optional()
           .describe(
-            "The design the user accepted: style, duration in seconds, audio, illustration and exclusions. Pass it on to scaffold_video_spec and hosted tools."
+            "The design the user accepted: style, duration in seconds, audio, illustration and exclusions. Pass it on to scaffold_video_spec and later steps."
           ),
         aspect: aspectSchema
           .default("9:16")
@@ -1045,7 +1078,11 @@ export function registerSharedTemplateTools(
       },
       ...meta("propose_video_storyboard"),
     },
-    async (args) => runProposeVideoStoryboardTool(args, options.acceptedPreview)
+    async (args) =>
+      send(
+        "propose_video_storyboard",
+        runProposeVideoStoryboardTool(args, options.acceptedPreview)
+      )
   );
 
   server.registerTool(
@@ -1108,7 +1145,10 @@ export function registerSharedTemplateTools(
       ...meta("scaffold_video_spec"),
     },
     async (args) =>
-      runScaffoldVideoSpecTool(args, paired, options.acceptedPreview)
+      send(
+        "scaffold_video_spec",
+        runScaffoldVideoSpecTool(args, paired, options.acceptedPreview)
+      )
   );
 
   server.registerTool(
@@ -1131,7 +1171,11 @@ export function registerSharedTemplateTools(
       },
       ...meta("get_render_instructions"),
     },
-    async (args) => runGetRenderInstructionsTool(args)
+    async (args) =>
+      send(
+        "get_render_instructions",
+        runGetRenderInstructionsTool(args, { voiceStudio: options.voiceStudio })
+      )
   );
 
   server.registerTool(
@@ -1150,6 +1194,7 @@ export function registerSharedTemplateTools(
       annotations: { title: "Diagnose render error", ...READ_ONLY_ANNOTATIONS },
       ...meta("diagnose_render_error"),
     },
-    async (args) => runDiagnoseRenderErrorTool(args)
+    async (args) =>
+      send("diagnose_render_error", runDiagnoseRenderErrorTool(args))
   );
 }

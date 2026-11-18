@@ -170,6 +170,7 @@ export function registerPairedAnnouncement(
         pairedAnnouncementInstructions(options.pairedCatalogue),
       inputSchema: pairedAnnouncementInput,
       annotations: {
+        title: "Prepare announcement",
         readOnlyHint: true,
         destructiveHint: false,
         openWorldHint: false,

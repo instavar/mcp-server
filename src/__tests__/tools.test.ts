@@ -347,15 +347,71 @@ describe("write tools → correct POST + path", () => {
     expect(f.method).toBe("POST");
   });
 
-  it("publish_job → POST /api/jobs/:id/publish (NOT /api/v1)", async () => {
-    await call("publish_job", {
+  it("publish_job asks for the user's approval before anything is posted", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          confirmationId: "conf-1",
+          status: "pending",
+          userCode: "ABCD-2345",
+          approveUrl: "https://instavar.com/studio/confirm-post/conf-1",
+          expiresAt: "2026-10-26T12:00:00.000Z",
+          content: {
+            jobId: "job-1",
+            platform: "youtube",
+            platformName: "YouTube",
+            accountName: "Bakery",
+            destinationId: "dest-1",
+            videoArtifactId: "video-1",
+          },
+        }),
+        { status: 201 }
+      )
+    );
+    const result = await call("publish_job", {
       jobId: "job-1",
       youtubePrivacyStatus: "private",
     });
     const f = lastFetch();
-    expect(f.url).toMatch(/\/api\/jobs\/job-1\/publish$/);
-    expect(f.url).not.toContain("/api/v1/");
-    expect(String(f.body)).toContain("private");
+    expect(f.url).toMatch(/\/api\/v1\/jobs\/job-1\/publish-confirmations$/);
+    expect(f.method).toBe("POST");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(JSON.stringify(result)).toContain("Nothing was posted yet");
+  });
+
+  it("publish_job → POST /api/jobs/:id/publish (NOT /api/v1) once approved", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          confirmationId: "conf-1",
+          status: "approved",
+          content: {
+            jobId: "job-1",
+            platform: "youtube",
+            platformName: "YouTube",
+            accountName: "Bakery",
+            destinationId: "dest-1",
+            videoArtifactId: "video-1",
+          },
+        }),
+        { status: 200 }
+      )
+    );
+    await call("publish_job", {
+      jobId: "job-1",
+      confirmationId: "conf-1",
+      youtubePrivacyStatus: "private",
+    });
+    const [url, init] = fetchMock.mock.calls[1] as [string, RequestInit];
+    expect(String(url)).toMatch(/\/api\/jobs\/job-1\/publish$/);
+    expect(String(url)).not.toContain("/api/v1/");
+    expect(JSON.parse(String(init.body))).toEqual({
+      publishConfirmationId: "conf-1",
+      provider: "youtube",
+      connectedAccountDestinationId: "dest-1",
+      expectedVideoArtifactId: "video-1",
+      youtubePrivacyStatus: "private",
+    });
   });
 });
 

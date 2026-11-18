@@ -7,7 +7,7 @@
     "url": "https://github.com/instavar/mcp-server",
     "source": "github"
   },
-  "version": "0.7.0",
+  "version": "0.8.0",
   "websiteUrl": "https://instavar.com/remotion",
   "icons": [
     {
@@ -26,7 +26,7 @@
     {
       "registryType": "npm",
       "identifier": "@instavar/mcp-server",
-      "version": "0.7.0",
+      "version": "0.8.0",
       "transport": {
         "type": "stdio"
       },
@@ -53,6 +53,7 @@
         "keywords": [
           "video-editing",
           "remotion",
+          "hyperframes",
           "video-templates",
           "creative-guidance",
           "programmatic-video",
@@ -66,15 +67,21 @@
           "get_template",
           "get_video_schema",
           "get_example",
+          "propose_video_storyboard",
           "scaffold_video_spec",
+          "prepare_video_template",
+          "prepare_announcement",
+          "list_carousel_templates",
+          "get_carousel_schema",
+          "scaffold_carousel_deck",
           "get_render_instructions",
           "diagnose_render_error"
         ],
         "startHere": "Call get_capabilities, then list_templates and get_template before scaffolding a VideoSpec. Get local rendering instructions to produce a video on the user's machine.",
-        "authentication": "No account or API key for template tools and creative guides. INSTAVAR_API_KEY unlocks separate hosted Studio workflows.",
+        "authentication": "No account or API key for template tools and creative guides. On the hosted remote, account tools need the user to link an Instavar account (OAuth). On the npm package, INSTAVAR_API_KEY unlocks separate hosted Studio workflows.",
         "boundaries": "Planning and scaffolding do not render, upload or publish media. Hosted production can incur costs. Publishing requires explicit user approval. Independent of Remotion AG.",
         "remotePlanningEndpoint": "https://instavar.com/api/mcp/templates",
-        "remotePlanningNote": "Hosted remote listed under remotes. From 0.7.0 it serves the same free template, storyboard, carousel and paired Remotion or HyperFrames tools as the npm package, plus a ChatGPT planner widget and optional OAuth private project review. Hosted Studio tools stay on the npm package with INSTAVAR_API_KEY or on the protected Studio endpoint.",
+        "remotePlanningNote": "Hosted remote listed under remotes. It serves the same free template, storyboard, carousel and paired Remotion or HyperFrames tools as the npm package, plus a ChatGPT planner widget. After the user links an Instavar account, five account tools list and review private projects, create and edit video briefs, and check render status; creating a brief starts a hosted render that uses plan credits. Workflow editing, approval, publishing and the other hosted Studio tools stay on the npm package with INSTAVAR_API_KEY or on the protected Studio endpoint.",
         "protectedStudioEndpoint": "https://instavar.com/api/mcp/mcp",
         "protectedStudioNote": "Separate hosted Studio surface; OAuth authentication required."
       }

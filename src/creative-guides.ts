@@ -61,6 +61,7 @@ export function registerCreativeGuides(
           .describe("Guide to read. Omit to list the guides."),
       },
       annotations: {
+        title: "Get creative guide",
         readOnlyHint: true,
         destructiveHint: false,
         openWorldHint: false,
