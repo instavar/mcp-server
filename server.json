@@ -7,7 +7,7 @@
     "url": "https://github.com/instavar/mcp-server",
     "source": "github"
   },
-  "version": "0.8.0",
+  "version": "0.9.0",
   "websiteUrl": "https://instavar.com/remotion",
   "icons": [
     {
@@ -26,7 +26,7 @@
     {
       "registryType": "npm",
       "identifier": "@instavar/mcp-server",
-      "version": "0.8.0",
+      "version": "0.9.0",
       "transport": {
         "type": "stdio"
       },

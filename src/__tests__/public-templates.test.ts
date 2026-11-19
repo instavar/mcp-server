@@ -1,6 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { describe, expect, it } from "vitest";
 
+import { PUBLIC_VIDEO_TEMPLATES } from "../public-catalogue";
 import {
   registerPublicTemplateTools,
   scaffoldVideoSpec,
@@ -60,5 +61,12 @@ describe("public template tools", () => {
       "points",
       "cta",
     ]);
+  });
+
+  it("describes starting scene kinds as usual, since nothing enforces them", () => {
+    for (const template of PUBLIC_VIDEO_TEMPLATES) {
+      expect(template.usualSceneKinds.length).toBeGreaterThan(0);
+      expect(template).not.toHaveProperty("requiredSceneKinds");
+    }
   });
 });

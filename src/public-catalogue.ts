@@ -34,7 +34,12 @@ export interface PublicVideoTemplate {
   name: string;
   description: string;
   aspects: readonly Aspect[];
-  requiredSceneKinds: readonly string[];
+  /**
+   * The scene kinds this template usually starts with. A description, not a
+   * check: neither renderer nor the paired contract refuses a spec that
+   * leaves one out (family ablation, 19 November 2026).
+   */
+  usualSceneKinds: readonly string[];
   optionalSceneKinds: readonly string[];
   exampleId: string;
 }
@@ -46,7 +51,7 @@ export const PUBLIC_VIDEO_TEMPLATES: readonly PublicVideoTemplate[] = [
     description:
       "Start with a question, then answer it with a clip and clear points.",
     aspects: ["9:16", "4:5", "1:1"],
-    requiredSceneKinds: ["hero", "video-window", "cta"],
+    usualSceneKinds: ["hero", "video-window", "cta"],
     optionalSceneKinds: ["points"],
     exampleId: "qa-ad-starter",
   },
@@ -56,7 +61,7 @@ export const PUBLIC_VIDEO_TEMPLATES: readonly PublicVideoTemplate[] = [
     description:
       "Explain a calculation or claim step by step, then end with the takeaway.",
     aspects: ["9:16", "4:5", "1:1"],
-    requiredSceneKinds: ["hero", "equation"],
+    usualSceneKinds: ["hero", "equation"],
     optionalSceneKinds: ["points", "cta"],
     exampleId: "proof-walkthrough-starter",
   },
@@ -66,7 +71,7 @@ export const PUBLIC_VIDEO_TEMPLATES: readonly PublicVideoTemplate[] = [
     description:
       "Announce something new with a headline, proof, and next step.",
     aspects: ["9:16", "4:5", "1:1"],
-    requiredSceneKinds: ["hero", "points"],
+    usualSceneKinds: ["hero", "points"],
     optionalSceneKinds: ["statement", "mechanism", "video-window", "cta"],
     exampleId: "announcement-brief-starter",
   },
@@ -75,7 +80,7 @@ export const PUBLIC_VIDEO_TEMPLATES: readonly PublicVideoTemplate[] = [
     name: "Social remix",
     description: "Turn an existing clip into a caption-led social post.",
     aspects: ["9:16", "4:5", "1:1"],
-    requiredSceneKinds: ["hero", "video-window", "cta"],
+    usualSceneKinds: ["hero", "video-window", "cta"],
     optionalSceneKinds: ["points"],
     exampleId: "social-remix-starter",
   },
@@ -85,7 +90,7 @@ export const PUBLIC_VIDEO_TEMPLATES: readonly PublicVideoTemplate[] = [
     description:
       "Compare key numbers, show the evidence, and give a recommendation.",
     aspects: ["9:16", "4:5", "1:1"],
-    requiredSceneKinds: ["hero", "points"],
+    usualSceneKinds: ["hero", "points"],
     optionalSceneKinds: ["equation", "cta"],
     exampleId: "finance-brief-starter",
   },
@@ -365,7 +370,8 @@ type StoryboardKind =
   | "procedure"
   | "announcement"
   | "source-remix"
-  | "data-brief";
+  | "data-brief"
+  | "worked-proof";
 
 const HEALTH_OR_SAFETY_PATTERN =
   /\b(cpr|first aid|medical|medicine|medication|symptom|emergency|safety)\b/i;
@@ -404,6 +410,16 @@ function recommendStoryboardStructure(brief: string): {
   }
   if (/\b(announce(?:ment)?|launch|new|opening|release)\b/i.test(brief)) {
     return { templateId: "announcement-brief", kind: "announcement" };
+  }
+  // Calculations and proofs. Checked before procedures so that "how to
+  // calculate" reaches the equation walkthrough while physical how-to
+  // requests still do not.
+  if (
+    /\b(theorem|equations?|deriv(?:e|es|ing|ation)|calculat(?:e|es|ing|ions?)|worked\s+examples?|prove\s+(?:that|why)|mathematical\s+proof|proof\s+(?:that|of\s+(?:the|why)))\b/i.test(
+      brief
+    )
+  ) {
+    return { templateId: "proof-walkthrough", kind: "worked-proof" };
   }
   if (
     /\b(how\s+to|how\s+do\s+(?:i|you|we)|steps?|step-by-step|recipe|cook|slice|chop|dice|peel|prepare|assemble|install|set\s+up|fold|tie)\b/i.test(
@@ -455,16 +471,16 @@ function storyboardFrames(args: {
     ],
     "proof-walkthrough": [
       [
-        "Set the scene",
-        "Establish the ingredients, tools, or starting condition.",
+        "State the question",
+        "Show what is being worked out and why the answer matters.",
       ],
       [
-        "Show the essential move",
-        "Show the central action in a close, readable moment.",
+        "Show the step that matters",
+        "Show the one move that makes the result follow.",
       ],
       [
-        "Land the outcome",
-        "Show the finished result and the one idea to remember.",
+        "Land the result",
+        "Show the final answer and the one idea to remember.",
       ],
     ],
     "announcement-brief": [
