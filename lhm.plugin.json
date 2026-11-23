@@ -1,7 +1,7 @@
 {
   "author": "Instavar",
   "authorUrl": "https://github.com/instavar",
-  "description": "Free Remotion video templates, creative guides, VideoSpec examples and local render diagnostics for AI agents. No Instavar account or API key is required for the nine public tools. An optional Instavar API key unlocks separate hosted Studio workflows, which may incur costs.",
+  "description": "Free Remotion and HyperFrames video templates, creative guides, storyboard and carousel planning, VideoSpec examples and local render diagnostics for AI agents. No Instavar account or API key is required for the fifteen public tools. An optional Instavar API key unlocks separate hosted Studio workflows, which may incur costs.",
   "homepage": "https://instavar.com/remotion",
   "identifier": "instavar-mcp-server",
   "name": "Instavar Video Templates and Studio",
@@ -51,13 +51,201 @@
               "carousel-stories",
               "visual-design",
               "human-review"
-            ]
+            ],
+            "description": "Guide to read. Omit to list the guides."
           }
         },
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
       "annotations": {
+        "title": "Get creative guide",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      },
+      "_meta": {
+        "securitySchemes": [
+          {
+            "type": "noauth"
+          }
+        ]
+      }
+    },
+    {
+      "name": "prepare_announcement",
+      "title": "Prepare an announcement in Remotion or HyperFrames",
+      "description": "Prepare one paired announcement-card-v1 template, continue its caller-held project, edit copy or switch frameworks. Returns source files for local rendering. For the paired announcement-card-v1 or a HyperFrames announcement request, use prepare_announcement. Never infer a framework from creative wording. Omit framework unless the user explicitly chooses one or says no preference. If needs-selection, ask the user. Continue with the latest returned project and expectedRevision; apply edits through edits before switching. Keep the returned project document for later calls. Never describe this caller-held document as a saved hosted project. VideoSpec templates use prepare_video_template in either framework.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "framework": {
+            "type": "string",
+            "enum": [
+              "remotion",
+              "hyperframes",
+              "no-preference"
+            ],
+            "description": "Only supply an explicit user choice. Omit for an ambiguous request or to inherit the existing project framework."
+          },
+          "copy": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 70
+              },
+              "body": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "cta": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40
+              }
+            },
+            "required": [
+              "title",
+              "body",
+              "cta"
+            ],
+            "additionalProperties": false,
+            "description": "Accepted copy for a new project only."
+          },
+          "project": {
+            "type": "object",
+            "properties": {
+              "templateId": {
+                "type": "string",
+                "const": "announcement-card-v1"
+              },
+              "framework": {
+                "type": "string",
+                "enum": [
+                  "remotion",
+                  "hyperframes"
+                ]
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740990
+              },
+              "copy": {
+                "$ref": "#/properties/copy"
+              }
+            },
+            "required": [
+              "templateId",
+              "framework",
+              "revision",
+              "copy"
+            ],
+            "additionalProperties": false,
+            "description": "The latest project document returned by this tool. Caller-held, not a saved hosted project."
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Required with project. Must match its revision. This checks the supplied document, not a server-side stored version."
+          },
+          "edits": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "$ref": "#/properties/copy/properties/title"
+              },
+              "body": {
+                "$ref": "#/properties/copy/properties/body"
+              },
+              "cta": {
+                "$ref": "#/properties/copy/properties/cta"
+              }
+            },
+            "additionalProperties": false,
+            "description": "Explicit copy edits to apply before switching. Other source or timeline edits cannot be preserved."
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "title": "Prepare announcement",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      },
+      "_meta": {
+        "securitySchemes": [
+          {
+            "type": "noauth"
+          }
+        ]
+      }
+    },
+    {
+      "name": "prepare_video_template",
+      "title": "Prepare a template video in Remotion or HyperFrames",
+      "description": "Validate one VideoSpec against the paired template contract and return local source for the chosen framework, or switch an existing project's framework. For a VideoSpec template in Remotion or HyperFrames, use prepare_video_template with the VideoSpec. Never infer a framework from creative wording; omit framework unless the user chose one or said no preference, and ask the user on needs-selection. Continue with the returned project: edit project.spec, then call again to regenerate or to switch frameworks. A rejected field is unsupported in both frameworks; fix it rather than dropping it. The tool returns local source and commands; it does not render, save or upload.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "framework": {
+            "type": "string",
+            "enum": [
+              "remotion",
+              "hyperframes",
+              "no-preference"
+            ],
+            "description": "Only supply an explicit user choice. Omit for an ambiguous request or to inherit the existing project framework."
+          },
+          "spec": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "A VideoSpec 1.0 document for a new project."
+          },
+          "project": {
+            "type": "object",
+            "properties": {
+              "contract": {
+                "type": "string",
+                "const": "paired-videospec/v1"
+              },
+              "framework": {
+                "type": "string",
+                "enum": [
+                  "remotion",
+                  "hyperframes"
+                ]
+              },
+              "spec": {
+                "type": "object",
+                "additionalProperties": {}
+              }
+            },
+            "required": [
+              "contract",
+              "framework",
+              "spec"
+            ],
+            "additionalProperties": false,
+            "description": "The latest project returned by this tool, with any edits made to project.spec. Caller-held, not a saved hosted project."
+          }
+        },
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "title": "Prepare video template",
         "readOnlyHint": true,
         "destructiveHint": false,
         "openWorldHint": false
@@ -92,21 +280,153 @@
       }
     },
     {
+      "name": "list_carousel_templates",
+      "title": "List carousel templates",
+      "description": "List the account-free editorial carousel story structures.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "title": "List carousel templates",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "get_carousel_schema",
+      "title": "Get CarouselDeck schema",
+      "description": "Return the JSON Schema for deterministic Instavar carousel decks.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "title": "Get carousel schema",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "scaffold_carousel_deck",
+      "title": "Scaffold carousel deck",
+      "description": "Build a deterministic editorial carousel deck from accepted copy. This does not render, save, or publish it.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "templateId": {
+            "type": "string",
+            "enum": [
+              "listicle",
+              "manifesto",
+              "before-after",
+              "value-first-reveal"
+            ],
+            "description": "Story structure from list_carousel_templates."
+          },
+          "hook": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Cover line on the first slide."
+          },
+          "subtitle": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "description": "Optional cover subtitle under the hook."
+          },
+          "points": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120
+            },
+            "minItems": 1,
+            "maxItems": 5,
+            "description": "Body beats in order. listicle lists them on one slide, manifesto gives each its own slide, before-after uses the first as the problem and the last as the contrast, and value-first-reveal uses the first three."
+          },
+          "payoff": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120,
+            "description": "Closing takeaway on the final slide."
+          },
+          "cta": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 140,
+            "description": "Optional call to action on the final slide."
+          },
+          "handle": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40,
+            "description": "Optional brand handle shown in the slide footer."
+          },
+          "aspect": {
+            "type": "string",
+            "enum": [
+              "4:5",
+              "1:1",
+              "9:16"
+            ],
+            "default": "4:5",
+            "description": "Slide aspect ratio. Defaults to 4:5."
+          }
+        },
+        "required": [
+          "templateId",
+          "hook",
+          "points",
+          "payoff"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "title": "Scaffold carousel deck",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
       "name": "list_templates",
-      "title": "List Remotion templates",
-      "description": "List public templates, optionally filtered by aspect ratio.",
+      "title": "List video templates",
+      "description": "List the published video template families, each available in Remotion and HyperFrames, and optionally filter by output aspect ratio.",
       "inputSchema": {
         "type": "object",
         "properties": {
           "aspect": {
             "type": "string",
-            "enum": ["9:16", "4:5", "1:1"]
+            "enum": [
+              "9:16",
+              "4:5",
+              "1:1"
+            ],
+            "description": "Only list templates that support this aspect ratio. Omit to list them all."
           }
         },
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
       "annotations": {
+        "title": "List templates",
         "readOnlyHint": true,
         "destructiveHint": false,
         "openWorldHint": false
@@ -117,8 +437,8 @@
     },
     {
       "name": "get_template",
-      "title": "Get Remotion template",
-      "description": "Get one public template contract.",
+      "title": "Get video template",
+      "description": "Get one template's purpose, aspect ratios, scene kinds, and example identifier.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -130,14 +450,18 @@
               "announcement-brief",
               "social-remix",
               "finance-brief"
-            ]
+            ],
+            "description": "Template family from list_templates."
           }
         },
-        "required": ["templateId"],
+        "required": [
+          "templateId"
+        ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
       "annotations": {
+        "title": "Get template",
         "readOnlyHint": true,
         "destructiveHint": false,
         "openWorldHint": false
@@ -149,13 +473,14 @@
     {
       "name": "get_video_schema",
       "title": "Get VideoSpec schema",
-      "description": "Return the public VideoSpec JSON Schema.",
+      "description": "Return the published JSON Schema for VideoSpec version 1.0.",
       "inputSchema": {
         "type": "object",
         "properties": {},
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
       "annotations": {
+        "title": "Get video schema",
         "readOnlyHint": true,
         "destructiveHint": false,
         "openWorldHint": false
@@ -167,7 +492,7 @@
     {
       "name": "get_example",
       "title": "Get VideoSpec example",
-      "description": "Return a starter example for one template.",
+      "description": "Return a valid starter example for one template family.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -179,14 +504,137 @@
               "announcement-brief",
               "social-remix",
               "finance-brief"
-            ]
+            ],
+            "description": "Template family whose starter VideoSpec to return."
           }
         },
-        "required": ["templateId"],
+        "required": [
+          "templateId"
+        ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
       "annotations": {
+        "title": "Get example",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "propose_video_storyboard",
+      "title": "Propose a video storyboard",
+      "description": "Turn an ordinary video request into a three-beat visual proposal and recommended template. Pass templateId to preserve an accepted template when changing only the aspect; omit it for a new direction. This tool does not generate images, save a project, render, or publish.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "brief": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 600,
+            "description": "The user's video request in their own words. It picks the recommended template and, without a title, the working title."
+          },
+          "templateId": {
+            "type": "string",
+            "enum": [
+              "qa-ad",
+              "proof-walkthrough",
+              "announcement-brief",
+              "social-remix",
+              "finance-brief"
+            ],
+            "description": "Accepted template family to keep, for example when only the aspect changes. Omit for a new direction."
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "description": "Accepted title, if the user supplied one. Omit to derive one from the brief."
+          },
+          "body": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "description": "Accepted body copy, kept exactly as supplied."
+          },
+          "cta": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500,
+            "description": "Accepted call to action, kept exactly as supplied."
+          },
+          "acceptedDesign": {
+            "type": "object",
+            "properties": {
+              "style": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 600
+              },
+              "durationSeconds": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 300
+              },
+              "audio": {
+                "type": "string",
+                "enum": [
+                  "silent",
+                  "narration",
+                  "music"
+                ]
+              },
+              "illustration": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 600
+              },
+              "exclusions": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                "maxItems": 20
+              },
+              "preview": {
+                "type": "string",
+                "const": "dark-cafe"
+              }
+            },
+            "required": [
+              "style",
+              "durationSeconds",
+              "audio",
+              "illustration",
+              "exclusions"
+            ],
+            "additionalProperties": false,
+            "description": "The design the user accepted: style, duration in seconds, audio, illustration and exclusions. Pass it on to scaffold_video_spec and later steps."
+          },
+          "aspect": {
+            "type": "string",
+            "enum": [
+              "9:16",
+              "4:5",
+              "1:1"
+            ],
+            "default": "9:16",
+            "description": "Output aspect ratio. Defaults to 9:16."
+          }
+        },
+        "required": [
+          "brief"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "annotations": {
+        "title": "Propose video storyboard",
         "readOnlyHint": true,
         "destructiveHint": false,
         "openWorldHint": false
@@ -198,7 +646,7 @@
     {
       "name": "scaffold_video_spec",
       "title": "Scaffold VideoSpec",
-      "description": "Return a deterministic VideoSpec skeleton without writing files.",
+      "description": "Return a deterministic VideoSpec skeleton. This tool does not generate creative copy or write files.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -210,29 +658,109 @@
               "announcement-brief",
               "social-remix",
               "finance-brief"
-            ]
+            ],
+            "description": "Template family from list_templates."
           },
           "title": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 160
+            "maxLength": 160,
+            "description": "Video title, shown in the opening scene and used for the spec ID."
+          },
+          "brief": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 600,
+            "description": "Original intent and constraints to preserve through planning and handoff. This is not generated video copy."
           },
           "aspect": {
             "type": "string",
-            "enum": ["9:16", "4:5", "1:1"],
-            "default": "9:16"
+            "enum": [
+              "9:16",
+              "4:5",
+              "1:1"
+            ],
+            "default": "9:16",
+            "description": "Output aspect ratio. Defaults to 9:16."
           },
           "mediaSrc": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 500
+            "maxLength": 500,
+            "description": "Source video path for the video window in qa-ad and social-remix. Other templates ignore it; without it the spec holds a placeholder path."
+          },
+          "body": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "description": "Accepted body copy. It replaces the placeholder copy and appears once."
+          },
+          "cta": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500,
+            "description": "Accepted call to action for the closing scene."
+          },
+          "acceptedDesign": {
+            "type": "object",
+            "properties": {
+              "style": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 600
+              },
+              "durationSeconds": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 300
+              },
+              "audio": {
+                "type": "string",
+                "enum": [
+                  "silent",
+                  "narration",
+                  "music"
+                ]
+              },
+              "illustration": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 600
+              },
+              "exclusions": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                "maxItems": 20
+              },
+              "preview": {
+                "type": "string",
+                "const": "dark-cafe"
+              }
+            },
+            "required": [
+              "style",
+              "durationSeconds",
+              "audio",
+              "illustration",
+              "exclusions"
+            ],
+            "additionalProperties": false,
+            "description": "The design the user accepted. Returned in planningContext for later steps; it does not change the VideoSpec."
           }
         },
-        "required": ["templateId", "title"],
+        "required": [
+          "templateId",
+          "title"
+        ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
       "annotations": {
+        "title": "Scaffold video spec",
         "readOnlyHint": true,
         "destructiveHint": false,
         "openWorldHint": false
@@ -244,20 +772,26 @@
     {
       "name": "get_render_instructions",
       "title": "Get local render instructions",
-      "description": "Return clone, install, validate, preview, and render commands.",
+      "description": "Return the clone, install, validate, preview, render, and QA workflow.",
       "inputSchema": {
         "type": "object",
         "properties": {
           "client": {
             "type": "string",
-            "enum": ["codex", "claude-code", "manual"],
-            "default": "manual"
+            "enum": [
+              "codex",
+              "claude-code",
+              "manual"
+            ],
+            "default": "manual",
+            "description": "Who will run the workflow. It changes only the guidance text. Defaults to manual."
           }
         },
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
       "annotations": {
+        "title": "Get render instructions",
         "readOnlyHint": true,
         "destructiveHint": false,
         "openWorldHint": false
@@ -269,21 +803,25 @@
     {
       "name": "diagnose_render_error",
       "title": "Diagnose render error",
-      "description": "Classify a local validation or render error.",
+      "description": "Classify a local validation or render error and return a safe next step.",
       "inputSchema": {
         "type": "object",
         "properties": {
           "errorText": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 10000
+            "maxLength": 10000,
+            "description": "The validation or render error output to classify."
           }
         },
-        "required": ["errorText"],
+        "required": [
+          "errorText"
+        ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
       },
       "annotations": {
+        "title": "Diagnose render error",
         "readOnlyHint": true,
         "destructiveHint": false,
         "openWorldHint": false
@@ -293,11 +831,12 @@
       }
     }
   ],
-  "version": "0.6.0",
+  "version": "0.9.1",
   "category": "tools",
   "tags": [
     "mcp",
     "remotion",
+    "hyperframes",
     "video-templates",
     "programmatic-video",
     "creative-guides",
@@ -309,11 +848,12 @@
     {
       "locale": "en-US",
       "name": "Instavar Video Templates and Studio",
-      "description": "Free Remotion video templates, creative guides, VideoSpec examples and local render diagnostics for AI agents. No Instavar account or API key is required for the nine public tools. An optional Instavar API key unlocks separate hosted Studio workflows, which may incur costs.",
-      "summary": "Start without an Instavar account or API key. Install @instavar/mcp-server and call get_capabilities. Use get_creative_guide before drafting copy or design; choose a supported structure with list_templates and get_template, then use get_example or scaffold_video_spec. get_render_instructions describes the separate local validate, preview and render workflow. Planning and scaffolding do not render, upload or publish media.\n\nThe default npm 0.6.0 connection exposes ten tools and four creative-guide resources. INSTAVAR_API_KEY is optional, not a setup requirement: configure it only for hosted Studio jobs, rendering, review, publishing and metrics. Hosted production may incur costs and publishing requires explicit user approval.\n\nFor browser-based agents, https://instavar.com/api/mcp/templates is a related but different HTTP service with storyboard and carousel planning plus OAuth private-project review. Its version and tool inventory must not be confused with this npm listing.\n\nInstavar is independent of Remotion AG. Public setup instructions and examples: https://instavar.com/remotion.",
+      "description": "Free Remotion and HyperFrames video templates, creative guides, storyboard and carousel planning, VideoSpec examples and local render diagnostics for AI agents. No Instavar account or API key is required for the fifteen public tools. An optional Instavar API key unlocks separate hosted Studio workflows, which may incur costs.",
+      "summary": "Start without an Instavar account or API key. Install @instavar/mcp-server and call get_capabilities. Use get_creative_guide before drafting copy or design; choose a supported structure with list_templates and get_template, plan beats with propose_video_storyboard, then use get_example or scaffold_video_spec. Templates are paired for Remotion and HyperFrames. get_render_instructions describes the separate local validate, preview and render workflow. Planning and scaffolding do not render, upload or publish media.\n\nThe default npm 0.9.1 connection exposes fifteen tools and four creative-guide resources. INSTAVAR_API_KEY is optional, not a setup requirement: configure it only for hosted Studio jobs, rendering, review, publishing and metrics. Hosted production may incur costs and publishing requires explicit user approval.\n\nFor browser-based agents, https://instavar.com/api/mcp/templates is a related but different HTTP service: it serves the same free tools, plus account tools after OAuth account linking. Its version and tool inventory must not be confused with this npm listing.\n\nInstavar is independent of Remotion AG. Public setup instructions and examples: https://instavar.com/remotion.",
       "tags": [
         "mcp",
         "remotion",
+        "hyperframes",
         "video-templates",
         "programmatic-video",
         "creative-guides",

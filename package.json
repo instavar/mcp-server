@@ -1,6 +1,6 @@
 {
   "name": "@instavar/mcp-server",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "mcpName": "com.instavar/mcp-server",
   "description": "Make local videos with Instavar templates for Remotion or HyperFrames for free, then add an API key for hosted Studio workflows.",
   "type": "module",
@@ -37,7 +37,11 @@
     "build": "tsup",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "release:prepare": "node scripts/prepare-release.mjs",
+    "listings:sync": "LISTINGS_SYNC=1 vitest run src/__tests__/release-consistency.test.ts -t \"declares to LobeHub\"",
+    "listings:verify": "node scripts/verify-listings.mjs",
+    "listings:lobehub": "npx -y @lobehub/market-cli plugin update --dir ."
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
